@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 func main() {
@@ -41,7 +44,10 @@ func main() {
 
 	// endpoint := "https://www.fip.fr/latest/api/graphql?operationName=History"
 	first := 10
-	timestamp := "MTU5MjQ2NzMyNA=="
+	from := time.Now().Unix()
+	timestamp := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(from, 10)))
+
+	// timestamp := "MTU5MjQ2NzMyNA=="
 	stationId := 7
 	req, err := http.NewRequest("GET", "https://www.fip.fr/latest/api/graphql", nil)
 	if err != nil {
@@ -80,6 +86,7 @@ func main() {
 
 	for _, v := range responseObject.Data.TimelineCursor.Edges {
 		println("----")
+		fmt.Printf("At: %s\n", time.Unix(int64(v.Node.StartTime), 0))
 		fmt.Printf("Title: %s\n", v.Node.Title)
 		fmt.Printf("Artiste: %s\n", v.Node.Artist)
 		fmt.Printf("Album: %s\n", v.Node.Album)
