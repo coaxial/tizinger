@@ -120,6 +120,13 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 		return nil, err
 	}
 
+	logger.Info.Print(
+		fmt.Sprintf(
+			"Received response %q, %d bytes",
+			response.Header.Get("content-type"),
+			response.ContentLength,
+		),
+	)
 	responseData, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
 	if err != nil {
