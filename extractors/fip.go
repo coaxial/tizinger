@@ -3,9 +3,9 @@ package extractors
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -81,12 +81,14 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 	first := 10
 	from := time.Now().Unix()
 	timestamp := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(from, 10)))
-	stationId := 7 // 7 is FIP
+	const fip = 7
+	stationId := fip
 
 	// Build URL with http.NewRequest so that the query string can be easily built
 	req, err := http.NewRequest("GET", endpointUrl, nil)
 	if err != nil {
-		log.Fatal(err)
+		errMsg := fmt.Sprintf("Error while building new request: %v", err)
+		logger.Error.Println(errMsg)
 		return nil, err
 	}
 	query := req.URL.Query()
@@ -107,36 +109,38 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 	)
 	req.URL.RawQuery = query.Encode()
 
-	// Make the request
+	// Build client
 	client := &http.Client{}
-
 	logger.Info.Printf("Initiating GET %s", req.URL)
-
+	// Make request
 	response, err := client.Do(req)
-
 	if err != nil {
-		log.Fatal(err)
+		errMsg := fmt.Sprintf("Error while performing GET: %v", err)
+		logger.Error.Print(errMsg)
+		return nil, err
+	}
+
+	responseData, err := ioutil.ReadAll(response.Body)
+	defer response.Body.Close()
+	if err != nil {
+		errMsg := fmt.Sprintf("Error while reading response data: %v", err)
+		logger.Error.Print(errMsg)
 		return nil, err
 	}
 	// A response that isn't HTTP 200 OK will still make err nil, so a
 	// check needs to be done to make sure it succeeded
 	if response.StatusCode != http.StatusOK {
-		logger.Error.Printf("Request failed, got HTTP %d. %v", response.StatusCode, err)
-		return nil, err
+		errMsg := fmt.Sprintf(
+			"Request failed, got HTTP %d (%v)",
+			response.StatusCode,
+			string(responseData),
+		)
+		logger.Error.Printf(errMsg)
+		return nil, errors.New(errMsg)
 	}
 
-	defer response.Body.Close()
-
-	responseData, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
-	logger.Trace.Printf("Response Data: %v", string(responseData))
-	logger.Trace.Printf(string(responseData))
-	fmt.Println(string([]byte(responseData)))
-	fmt.Println(responseData)
-	logger.Trace.Printf("Response Data: %T", responseData)
+	// We most likely have the playlist data, time to unmarshal it and pick
+	// the fields we want.
 	var responseObject FipHistoryResponse
 	json.Unmarshal(responseData, &responseObject)
 	var trackList []playlist.Track
