@@ -31,7 +31,7 @@ func TestPlaylistErr(t *testing.T) {
 func TestPlaylist(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusOK)
-		resp.Header().Set("Content-Type", "application/json")
+		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		historyJson := mocks.LoadFixture("../fixtures/fip/history_response.json")
 		resp.Write(historyJson)
 	}
@@ -54,4 +54,21 @@ func TestPlaylist(t *testing.T) {
 	actual, _ := extractor.Playlist(0)
 
 	assert.Equal(t, actual, expected, "should return a playlist")
+}
+
+func TestEmptyResponse(t *testing.T) {
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
+		emptyResp := []byte("{}")
+		resp.Write(emptyResp)
+	}
+	server := mocks.Server(handler)
+	defer server.Close()
+	extractor.SetEndpointUrl(server.URL)
+
+	actual, err := extractor.Playlist(0)
+
+	assert.Nil(t, actual, "should not return a playlist")
+	assert.Error(t, err)
 }

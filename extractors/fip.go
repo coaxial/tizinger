@@ -154,5 +154,10 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 		trackList = append(trackList, track)
 	}
 
+	if len(trackList) == 0 {
+		errMsg := fmt.Sprintf("Empty playlist. Unmarshalled reponse: %v", responseObject)
+		logger.Error.Print(errMsg)
+		return nil, errors.New(errMsg)
+	}
 	return trackList, nil
 }
