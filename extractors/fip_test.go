@@ -51,8 +51,9 @@ func TestPlaylist(t *testing.T) {
 	}
 	extractor.SetEndpointUrl(server.URL)
 
-	actual, _ := extractor.Playlist(0)
+	actual, err := extractor.Playlist(0)
 
+	assert.Nil(t, err)
 	assert.Equal(t, actual, expected, "should return a playlist")
 }
 
