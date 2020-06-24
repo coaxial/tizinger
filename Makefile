@@ -1,5 +1,6 @@
 test:
-	go test -v ./...
-
-test_ci:
 	go test ./...
+
+test_watch:
+	watch -n 5 make test
+
