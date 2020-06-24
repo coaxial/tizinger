@@ -1,4 +1,4 @@
-package Extractors
+package extractors
 
 import (
 	"encoding/base64"
@@ -10,10 +10,9 @@ import (
 	"strconv"
 	"time"
 
-	playlist "github.com/coaxial/tizinger/playlist"
+	"github.com/coaxial/tizinger/playlist"
+	"github.com/coaxial/tizinger/utils/logger"
 )
-
-type FipExtractor struct{}
 
 type Node struct {
 	// the song's title is under the subtitle key
@@ -45,6 +44,21 @@ type FipHistoryResponse struct {
 	Data Data `json:"data"`
 }
 
+type FipExtractor struct {
+}
+
+var endpointUrl string
+
+func init() {
+	endpointUrl = "https://www.fip.fr/latest/api/graphql"
+}
+
+// This method is for testing, so that a mock server can be used instead of the
+// live one, and arbitrary responses or failures can be served as needed.
+func (extractor *FipExtractor) SetEndpointUrl(url string) {
+	endpointUrl = url
+}
+
 func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, error) {
 	// FIP uses graphql to serve its tracks history. To get the history for
 	// any given date and time, issue a GET to
@@ -64,14 +78,13 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 	// }
 	// It returns a FipHistoryResponse containing `first` number of tracks
 	// played since `after` timestamp
-	endpoint := "https://www.fip.fr/latest/api/graphql"
 	first := 10
 	from := time.Now().Unix()
 	timestamp := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(from, 10)))
 	stationId := 7 // 7 is FIP
 
 	// Build URL with http.NewRequest so that the query string can be easily built
-	req, err := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequest("GET", endpointUrl, nil)
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
@@ -94,8 +107,11 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 	)
 	req.URL.RawQuery = query.Encode()
 
-	// Build the client to make the request
+	// Make the request
 	client := &http.Client{}
+
+	logger.Info.Printf("Initiating GET %s", req.URL)
+
 	response, err := client.Do(req)
 
 	if err != nil {
@@ -105,8 +121,7 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 	// A response that isn't HTTP 200 OK will still make err nil, so a
 	// check needs to be done to make sure it succeeded
 	if response.StatusCode != http.StatusOK {
-		fmt.Printf("%#v", response)
-		log.Fatal("Query didn't succeed")
+		logger.Error.Printf("Request failed, got HTTP %d. %v", response.StatusCode, err)
 		return nil, err
 	}
 
@@ -117,12 +132,21 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 		log.Fatal(err)
 		return nil, err
 	}
+	logger.Trace.Printf("Response Data: %v", string(responseData))
+	logger.Trace.Printf(string(responseData))
+	fmt.Println(string([]byte(responseData)))
+	fmt.Println(responseData)
+	logger.Trace.Printf("Response Data: %T", responseData)
 	var responseObject FipHistoryResponse
 	json.Unmarshal(responseData, &responseObject)
 	var trackList []playlist.Track
 
 	for _, v := range responseObject.Data.TimelineCursor.Edges {
-		var track = playlist.Track{Title: v.Node.Title, Artist: v.Node.Artist, Album: v.Node.Album}
+		var track = playlist.Track{
+			Title:  v.Node.Title,
+			Artist: v.Node.Artist,
+			Album:  v.Node.Album,
+		}
 		trackList = append(trackList, track)
 	}
 
