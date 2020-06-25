@@ -20,7 +20,7 @@ func TestPlaylistErr(t *testing.T) {
 	}
 	server := mocks.Server(handler)
 	defer server.Close()
-	extractor.SetEndpointUrl(server.URL)
+	extractor.SetEndpointURL(server.URL)
 
 	actual, err := extractor.Playlist(0)
 
@@ -32,8 +32,8 @@ func TestPlaylist(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
-		historyJson := mocks.LoadFixture("../fixtures/fip/history_response.json")
-		resp.Write(historyJson)
+		historyJSON := mocks.LoadFixture("../fixtures/fip/history_response.json")
+		resp.Write(historyJSON)
 	}
 	server := mocks.Server(handler)
 	defer server.Close()
@@ -49,7 +49,7 @@ func TestPlaylist(t *testing.T) {
 		{Title: "Retiens l'été", Artist: "Double Francoise", Album: "Les bijoux"},
 		{Title: "Serenade nº13 en Sol Maj K 525 \"\"une petite musique de nuit\"\" : I. Allegro", Artist: "I Musici", Album: "Mozart, pachelbel, albinoni"},
 	}
-	extractor.SetEndpointUrl(server.URL)
+	extractor.SetEndpointURL(server.URL)
 
 	actual, err := extractor.Playlist(0)
 
@@ -66,7 +66,7 @@ func TestEmptyResponse(t *testing.T) {
 	}
 	server := mocks.Server(handler)
 	defer server.Close()
-	extractor.SetEndpointUrl(server.URL)
+	extractor.SetEndpointURL(server.URL)
 
 	actual, err := extractor.Playlist(0)
 

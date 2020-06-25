@@ -13,8 +13,7 @@ func Server(handler func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(handler))
 }
 
-// Loads JSON fixtures, typically for use as canned responses in handler
-// functions
+// LoadFixture is for loading canned responses to use in handler functions.
 func LoadFixture(path string) []byte {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {

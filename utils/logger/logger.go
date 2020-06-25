@@ -6,10 +6,16 @@ import (
 )
 
 var (
-	Trace   *log.Logger
-	Info    *log.Logger
+	// Trace logs verbose debug/troubleshooting information.
+	Trace *log.Logger
+	// Info logs information that helps understand what the code is doing.
+	Info *log.Logger
+	// Warning logs information worth noting, but that doesn't prevent code
+	// from running further.
 	Warning *log.Logger
-	Error   *log.Logger
+	// Error logs information about errors which prevent code from running
+	// further.
+	Error *log.Logger
 )
 
 func init() {

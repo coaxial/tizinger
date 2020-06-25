@@ -14,6 +14,7 @@ import (
 	"github.com/coaxial/tizinger/utils/logger"
 )
 
+// Node contains the playlist individual tracks information from the API
 type Node struct {
 	// the song's title is under the subtitle key
 	Title       string `json:"subtitle"`
@@ -25,40 +26,53 @@ type Node struct {
 	// the artist's name is under the title key
 	Artist string `json:"title"`
 }
+
+// Edges is a wrapper key from API response
 type Edges struct {
 	Node   Node   `json:"node"`
 	Cursor string `json:"cursor"`
 }
+
+// PageInfo contains pagination info
 type PageInfo struct {
 	EndCursor   string `json:"endCursor"`
 	HasNextPage bool   `json:"hasNextPage"`
 }
+
+// TimelineCursor is a wrapper for pagination info and track info
 type TimelineCursor struct {
 	Edges    []Edges  `json:"edges"`
 	PageInfo PageInfo `json:"pageInfo"`
 }
+
+// Data a wrapper for TimelineCursor
 type Data struct {
 	TimelineCursor TimelineCursor `json:"timelineCursor"`
 }
+
+// FipHistoryResponse is the API response to the History call
 type FipHistoryResponse struct {
 	Data Data `json:"data"`
 }
 
+// FipExtractor is the extractor dealing with fip.fr play history
 type FipExtractor struct {
 }
 
-var endpointUrl string
+var endpointURL string
 
 func init() {
-	endpointUrl = "https://www.fip.fr/latest/api/graphql"
+	endpointURL = "https://www.fip.fr/latest/api/graphql"
 }
 
-// This method is for testing, so that a mock server can be used instead of the
-// live one, and arbitrary responses or failures can be served as needed.
-func (extractor *FipExtractor) SetEndpointUrl(url string) {
-	endpointUrl = url
+// SetEndpointURL is for testing, so that a mock server can be used instead of
+// the live one, and arbitrary responses or failures can be served as needed.
+func (extractor *FipExtractor) SetEndpointURL(url string) {
+	endpointURL = url
 }
 
+// Playlist returns the playlist history from `timestampFrom`, which is a Unix
+// epoch in seconds.
 func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, error) {
 	// FIP uses graphql to serve its tracks history. To get the history for
 	// any given date and time, issue a GET to
@@ -68,7 +82,7 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 	// variables={
 	//   "first": <int>,
 	//   "after": <base64 encoded seconds epoch>,
-	//   "stationgId": <int>
+	//   "stationgID": <int>
 	// }
 	// extensions={
 	//   "persistedQuery: {
@@ -82,10 +96,10 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 	from := time.Now().Unix()
 	timestamp := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(from, 10)))
 	const fip = 7
-	stationId := fip
+	stationID := fip
 
 	// Build URL with http.NewRequest so that the query string can be easily built
-	req, err := http.NewRequest("GET", endpointUrl, nil)
+	req, err := http.NewRequest("GET", endpointURL, nil)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error while building new request: %v", err)
 		logger.Error.Println(errMsg)
@@ -96,10 +110,10 @@ func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, e
 	query.Add(
 		"variables",
 		fmt.Sprintf(
-			"{\"first\":%d,\"after\":\"%s\",\"stationId\":%d}",
+			"{\"first\":%d,\"after\":\"%s\",\"stationID\":%d}",
 			first,
 			timestamp,
-			stationId,
+			stationID,
 		),
 	)
 	query.Add(
