@@ -5,6 +5,9 @@ on:
   pull_request:
     branches: [master]
 
+env:
+  GOPATH: /home/runner/go
+  # Add go get download dir to PATH
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -19,9 +22,13 @@ jobs:
         # It won't find the package otherwise because the cloned repo is outside
         # of $GOPATH or $GOROOT
         run: |
-          export GOPATH=~/go
           mkdir -p ${GOPATH}/src/github.com/coaxial
           cp -r ~/work/tizinger/tizinger ${GOPATH}/src/github.com/coaxial
       
+      - name: Lint
+        run: |
+          export PATH=${PATH}:${GOPATH}/bin
+          make lint
+
       - name: Run tests
         run: make ci
