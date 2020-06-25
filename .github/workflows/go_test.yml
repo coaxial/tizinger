@@ -16,11 +16,11 @@ jobs:
         uses: actions/setup-go@v2
 
       - name: Add module
-        run: go mod init tizinger
+        run: go mod init github.com/coaxial/tizinger
       
       - name: Lint
         run: |
-          export PATH=${PATH}:${GOPATH}/bin
+          export PATH=${PATH}:/home/runner/go/bin
           make lint
 
       - name: Run tests
