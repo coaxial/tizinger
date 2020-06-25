@@ -1,5 +1,5 @@
 test:
-	go test ./...
+	go test -race ./...
 
 test_watch:
 	watch -n 5 make test
