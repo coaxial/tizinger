@@ -25,7 +25,7 @@ func TestPlaylistErr(t *testing.T) {
 	actual, err := extractor.Playlist(0)
 
 	assert.Nil(t, actual)
-	assert.Error(t, err)
+	assert.Error(t, err, "should return an error")
 }
 
 func TestPlaylist(t *testing.T) {
