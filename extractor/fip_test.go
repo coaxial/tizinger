@@ -1,17 +1,17 @@
-package extractors_test
+package extractor_test
 
 import (
 	"fmt"
 	"net/http"
 	"testing"
 
-	"github.com/coaxial/tizinger/extractors"
+	"github.com/coaxial/tizinger/extractor"
 	"github.com/coaxial/tizinger/playlist"
 	"github.com/coaxial/tizinger/utils/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
-var extractor extractors.FipExtractor
+var subject extractor.FipExtractor
 
 func TestPlaylistErr(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
@@ -22,10 +22,10 @@ func TestPlaylistErr(t *testing.T) {
 	}
 	server := mocks.Server(handler)
 	defer server.Close()
-	extractor.SetEndpointURL(server.URL)
-	defer extractor.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
+	subject.SetEndpointURL(server.URL)
+	defer subject.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
 
-	actual, err := extractor.Playlist(0)
+	actual, err := subject.Playlist(0)
 
 	assert.Nil(t, actual)
 	assert.Error(t, err, "should return an error")
@@ -39,8 +39,8 @@ func TestPlaylist(t *testing.T) {
 		resp.Write(historyJSON)
 	}
 	server := mocks.Server(handler)
-	extractor.SetEndpointURL(server.URL)
-	defer extractor.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
+	subject.SetEndpointURL(server.URL)
+	defer subject.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
 	defer server.Close()
 	expected := []playlist.Track{
 		{Title: "Scar tissue", Artist: "Red Hot Chili Peppers", Album: "Greatest hits"},
@@ -55,7 +55,7 @@ func TestPlaylist(t *testing.T) {
 		{Title: "Serenade nº13 en Sol Maj K 525 \"\"une petite musique de nuit\"\" : I. Allegro", Artist: "I Musici", Album: "Mozart, pachelbel, albinoni"},
 	}
 
-	actual, err := extractor.Playlist(0)
+	actual, err := subject.Playlist(0)
 
 	assert.Nil(t, err, "should not error")
 	assert.Equal(t, expected, actual, "should return a playlist")
@@ -70,17 +70,17 @@ func TestEmptyResponse(t *testing.T) {
 	}
 	server := mocks.Server(handler)
 	defer server.Close()
-	extractor.SetEndpointURL(server.URL)
-	defer extractor.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
+	subject.SetEndpointURL(server.URL)
+	defer subject.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
 
-	actual, err := extractor.Playlist(0)
+	actual, err := subject.Playlist(0)
 
 	assert.Nil(t, actual, "should not return a playlist")
 	assert.Error(t, err)
 }
 
 func ExamplePlaylist() {
-	var fipExtractor extractors.FipExtractor
+	var fipExtractor extractor.FipExtractor
 	// Get the list of tracks played on FIP since 2020-07-25 00:30:00 GMT
 	tracks, err := fipExtractor.Playlist(1564014600)
 	if err != nil {

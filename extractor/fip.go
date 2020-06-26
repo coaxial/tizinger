@@ -3,7 +3,7 @@
 // particular source.
 // The interface for an extractor is to implement a Playlist method that
 // returns a []playlist.Track.
-package extractors
+package extractor
 
 import (
 	"encoding/base64"
