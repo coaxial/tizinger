@@ -55,8 +55,8 @@ type data struct {
 	TimelineCursor timelineCursor `json:"timelineCursor"`
 }
 
-// FipHistoryResponse is the API response to the History call
-type FipHistoryResponse struct {
+// fipHistoryResponse is the API response to the History call
+type fipHistoryResponse struct {
 	Data data `json:"data"`
 }
 
@@ -196,8 +196,8 @@ func makeRequest(req *http.Request, client *http.Client) (*http.Response, error)
 }
 
 // unmarshalResponse parses the API response and unmarshals it to JSON.
-func unmarshalResponse(response *http.Response) (FipHistoryResponse, error) {
-	var responseObject FipHistoryResponse
+func unmarshalResponse(response *http.Response) (fipHistoryResponse, error) {
+	var responseObject fipHistoryResponse
 
 	responseData, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
@@ -224,7 +224,7 @@ func unmarshalResponse(response *http.Response) (FipHistoryResponse, error) {
 	return responseObject, nil
 }
 
-func buildTracklist(JSON FipHistoryResponse) ([]playlist.Track, error) {
+func buildTracklist(JSON fipHistoryResponse) ([]playlist.Track, error) {
 	logger.Trace.Println(JSON)
 	var trackList []playlist.Track
 
