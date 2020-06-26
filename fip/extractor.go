@@ -1,9 +1,5 @@
-// Package extractors pull out historical playlist data from their source. All
-// extractors live under this module, each extractor cattering to one
-// particular source.
-// The interface for an extractor is to implement a Playlist method that
-// returns a []playlist.Track.
-package extractor
+// Package fip implements the Extractor for fip.fr
+package fip
 
 import (
 	"encoding/base64"
@@ -60,8 +56,8 @@ type fipHistoryResponse struct {
 	Data data `json:"data"`
 }
 
-// FipExtractor is the extractor dealing with fip.fr play history
-type FipExtractor struct {
+// Extractor is the extractor dealing with fip.fr play history
+type Extractor struct {
 }
 
 var endpointURL string
@@ -72,13 +68,13 @@ func init() {
 
 // SetEndpointURL is for testing, so that a mock server can be used instead of
 // the live one, and arbitrary responses or failures can be served as needed.
-func (extractor *FipExtractor) SetEndpointURL(url string) {
+func (extractor *Extractor) SetEndpointURL(url string) {
 	endpointURL = url
 }
 
 // Playlist returns the playlist history from `timestampFrom`, which is a Unix
 // epoch in seconds.
-func (extractor FipExtractor) Playlist(timestampFrom int64) ([]playlist.Track, error) {
+func (extractor Extractor) Playlist(timestampFrom int64) ([]playlist.Track, error) {
 	// TODO: Fetch 24h worth and/or check all tracks are from the same day
 	req, err := buildRequest(timestampFrom)
 	if err != nil {

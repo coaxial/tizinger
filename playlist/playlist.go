@@ -7,8 +7,5 @@ type Track struct {
 	Album  string
 }
 
-// Extractor types are unmarshalling historical playlist data from their
-// sources into Track structs
-type Extractor interface {
-	Playlist(timestampFrom int64) ([]Track, error)
-}
+// Tracklist is the list of tracks played
+type Tracklist []Track

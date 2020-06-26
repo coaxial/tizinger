@@ -1,17 +1,17 @@
-package extractor_test
+package fip_test
 
 import (
 	"fmt"
 	"net/http"
 	"testing"
 
-	"github.com/coaxial/tizinger/extractor"
+	"github.com/coaxial/tizinger/fip"
 	"github.com/coaxial/tizinger/playlist"
 	"github.com/coaxial/tizinger/utils/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
-var subject extractor.FipExtractor
+var subject fip.Extractor
 
 func TestPlaylistErr(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
@@ -80,7 +80,7 @@ func TestEmptyResponse(t *testing.T) {
 }
 
 func ExamplePlaylist() {
-	var fipExtractor extractor.FipExtractor
+	var fipExtractor fip.Extractor
 	// Get the list of tracks played on FIP since 2020-07-25 00:30:00 GMT
 	tracks, err := fipExtractor.Playlist(1564014600)
 	if err != nil {
