@@ -1,3 +1,8 @@
+// Package extractors pull out historical playlist data from their source. All
+// extractors live under this module, each extractor cattering to one
+// particular source.
+// The interface for an extractor is to implement a Playlist method that
+// returns a []playlist.Track.
 package extractors
 
 import (
@@ -14,8 +19,8 @@ import (
 	"github.com/coaxial/tizinger/utils/logger"
 )
 
-// Node contains the playlist individual tracks information from the API
-type Node struct {
+// node contains the playlist individual tracks information from the API
+type node struct {
 	// the song's title is under the subtitle key
 	Title       string `json:"subtitle"`
 	StartTime   int    `json:"start_time"`
@@ -27,32 +32,32 @@ type Node struct {
 	Artist string `json:"title"`
 }
 
-// Edges is a wrapper key from API response
-type Edges struct {
-	Node   Node   `json:"node"`
+// edges is a wrapper key from API response
+type edges struct {
+	Node   node   `json:"node"`
 	Cursor string `json:"cursor"`
 }
 
-// PageInfo contains pagination info
-type PageInfo struct {
+// pageInfo contains pagination info
+type pageInfo struct {
 	EndCursor   string `json:"endCursor"`
 	HasNextPage bool   `json:"hasNextPage"`
 }
 
-// TimelineCursor is a wrapper for pagination info and track info
-type TimelineCursor struct {
-	Edges    []Edges  `json:"edges"`
-	PageInfo PageInfo `json:"pageInfo"`
+// timelineCursor is a wrapper for pagination info and track info
+type timelineCursor struct {
+	Edges    []edges  `json:"edges"`
+	PageInfo pageInfo `json:"pageInfo"`
 }
 
-// Data a wrapper for TimelineCursor
-type Data struct {
-	TimelineCursor TimelineCursor `json:"timelineCursor"`
+// data is a wrapper for TimelineCursor
+type data struct {
+	TimelineCursor timelineCursor `json:"timelineCursor"`
 }
 
 // FipHistoryResponse is the API response to the History call
 type FipHistoryResponse struct {
-	Data Data `json:"data"`
+	Data data `json:"data"`
 }
 
 // FipExtractor is the extractor dealing with fip.fr play history
@@ -220,6 +225,7 @@ func unmarshalResponse(response *http.Response) (FipHistoryResponse, error) {
 }
 
 func buildTracklist(JSON FipHistoryResponse) ([]playlist.Track, error) {
+	logger.Trace.Println(JSON)
 	var trackList []playlist.Track
 
 	for _, v := range JSON.Data.TimelineCursor.Edges {

@@ -1,15 +1,17 @@
-package extractors
+package extractors_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
+	"github.com/coaxial/tizinger/extractors"
 	"github.com/coaxial/tizinger/playlist"
 	"github.com/coaxial/tizinger/utils/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
-var extractor FipExtractor
+var extractor extractors.FipExtractor
 
 func TestPlaylistErr(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
@@ -21,6 +23,7 @@ func TestPlaylistErr(t *testing.T) {
 	server := mocks.Server(handler)
 	defer server.Close()
 	extractor.SetEndpointURL(server.URL)
+	defer extractor.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
 
 	actual, err := extractor.Playlist(0)
 
@@ -36,6 +39,8 @@ func TestPlaylist(t *testing.T) {
 		resp.Write(historyJSON)
 	}
 	server := mocks.Server(handler)
+	extractor.SetEndpointURL(server.URL)
+	defer extractor.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
 	defer server.Close()
 	expected := []playlist.Track{
 		{Title: "Scar tissue", Artist: "Red Hot Chili Peppers", Album: "Greatest hits"},
@@ -49,12 +54,11 @@ func TestPlaylist(t *testing.T) {
 		{Title: "Retiens l'été", Artist: "Double Francoise", Album: "Les bijoux"},
 		{Title: "Serenade nº13 en Sol Maj K 525 \"\"une petite musique de nuit\"\" : I. Allegro", Artist: "I Musici", Album: "Mozart, pachelbel, albinoni"},
 	}
-	extractor.SetEndpointURL(server.URL)
 
 	actual, err := extractor.Playlist(0)
 
-	assert.Nil(t, err)
-	assert.Equal(t, actual, expected, "should return a playlist")
+	assert.Nil(t, err, "should not error")
+	assert.Equal(t, expected, actual, "should return a playlist")
 }
 
 func TestEmptyResponse(t *testing.T) {
@@ -67,9 +71,23 @@ func TestEmptyResponse(t *testing.T) {
 	server := mocks.Server(handler)
 	defer server.Close()
 	extractor.SetEndpointURL(server.URL)
+	defer extractor.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
 
 	actual, err := extractor.Playlist(0)
 
 	assert.Nil(t, actual, "should not return a playlist")
 	assert.Error(t, err)
+}
+
+func ExamplePlaylist() {
+	var fipExtractor extractors.FipExtractor
+	// Get the list of tracks played on FIP since 2020-07-25 00:30:00 GMT
+	tracks, err := fipExtractor.Playlist(1564014600)
+	if err != nil {
+		fmt.Sprintf("Could not fetch FIP tracks: %v", err)
+	}
+
+	fmt.Println(tracks)
+	// Output: [{Riding the sun Howls Howls} {In the wake of adversity Dead Can Dance Within the realm of a dying sun} {Madame rêve Alain Bashung Osez Josephine} {The Planets op 32 : 3. Mercury, the Winged Messenger Orchestre Symphonique De Chicago Gustav Holst : Les Planètes} {Annie : The hard-knock life Alicia Morton BOF TV / Annie} {Bruce Lee Catastrophe Bruce Lee} {New comer 1 Walt Rockman Dusty fingers} {Cars Gary Numan The pleasure principle / Warriors} {Radio #1 Air 10000 hz legend} {Previsão do tempo Marcos Valle Previsao do tempo}]
+
 }
