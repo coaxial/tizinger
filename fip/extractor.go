@@ -1,4 +1,4 @@
-// Package fip implements the Extractor for fip.fr
+// Package fip extracts playlist data from fip.fr
 package fip
 
 import (
@@ -28,49 +28,41 @@ type node struct {
 	Artist string `json:"title"`
 }
 
-// edges is a wrapper key from API response
+// edges is a wrapper key from the API
 type edges struct {
 	Node   node   `json:"node"`
 	Cursor string `json:"cursor"`
 }
 
-// pageInfo contains pagination info
+// pageInfo contains pagination info from the API
 type pageInfo struct {
 	EndCursor   string `json:"endCursor"`
 	HasNextPage bool   `json:"hasNextPage"`
 }
 
-// timelineCursor is a wrapper for pagination info and track info
+// timelineCursor is a wrapper for pagination info and track info from the API
 type timelineCursor struct {
 	Edges    []edges  `json:"edges"`
 	PageInfo pageInfo `json:"pageInfo"`
 }
 
-// data is a wrapper for TimelineCursor
+// data is a wrapper for timelineCursor fom the API
 type data struct {
 	TimelineCursor timelineCursor `json:"timelineCursor"`
 }
 
-// fipHistoryResponse is the API response to the History call
-type fipHistoryResponse struct {
+// historyResponse contains the whole response from the API
+type historyResponse struct {
 	Data data `json:"data"`
 }
 
-// Extractor is the extractor dealing with fip.fr play history
+// Extractor implements the extractor.Extractor interface for fip.fr
 type Extractor struct {
 }
 
-var endpointURL string
-
-func init() {
-	endpointURL = "https://www.fip.fr/latest/api/graphql"
-}
-
-// SetEndpointURL is for testing, so that a mock server can be used instead of
-// the live one, and arbitrary responses or failures can be served as needed.
-func (extractor *Extractor) SetEndpointURL(url string) {
-	endpointURL = url
-}
+// endpointURL is the URL where the API endpoint is located. It can be
+// overridden when testing to serve canned responses instead.
+var endpointURL = "https://www.fip.fr/latest/api/graphql"
 
 // Playlist returns the playlist history from `timestampFrom`, which is a Unix
 // epoch in seconds.
@@ -192,8 +184,8 @@ func makeRequest(req *http.Request, client *http.Client) (*http.Response, error)
 }
 
 // unmarshalResponse parses the API response and unmarshals it to JSON.
-func unmarshalResponse(response *http.Response) (fipHistoryResponse, error) {
-	var responseObject fipHistoryResponse
+func unmarshalResponse(response *http.Response) (historyResponse, error) {
+	var responseObject historyResponse
 
 	responseData, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
@@ -220,7 +212,7 @@ func unmarshalResponse(response *http.Response) (fipHistoryResponse, error) {
 	return responseObject, nil
 }
 
-func buildTracklist(JSON fipHistoryResponse) ([]playlist.Track, error) {
+func buildTracklist(JSON historyResponse) ([]playlist.Track, error) {
 	logger.Trace.Println(JSON)
 	var trackList []playlist.Track
 

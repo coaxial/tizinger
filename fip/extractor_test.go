@@ -1,17 +1,16 @@
-package fip_test
+package fip
 
 import (
 	"fmt"
 	"net/http"
 	"testing"
 
-	"github.com/coaxial/tizinger/fip"
 	"github.com/coaxial/tizinger/playlist"
 	"github.com/coaxial/tizinger/utils/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
-var subject fip.Extractor
+var extractor Extractor
 
 func TestPlaylistErr(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
@@ -22,10 +21,10 @@ func TestPlaylistErr(t *testing.T) {
 	}
 	server := mocks.Server(handler)
 	defer server.Close()
-	subject.SetEndpointURL(server.URL)
-	defer subject.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
+	SetEndpointURL(server.URL)
+	defer ResetEndpointURL()
 
-	actual, err := subject.Playlist(0)
+	actual, err := extractor.Playlist(0)
 
 	assert.Nil(t, actual)
 	assert.Error(t, err, "should return an error")
@@ -39,9 +38,9 @@ func TestPlaylist(t *testing.T) {
 		resp.Write(historyJSON)
 	}
 	server := mocks.Server(handler)
-	subject.SetEndpointURL(server.URL)
-	defer subject.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
 	defer server.Close()
+	SetEndpointURL(server.URL)
+	defer ResetEndpointURL()
 	expected := []playlist.Track{
 		{Title: "Scar tissue", Artist: "Red Hot Chili Peppers", Album: "Greatest hits"},
 		{Title: "Off the wall", Artist: "Jil Is Lucky", Album: "Off the wall"},
@@ -55,7 +54,7 @@ func TestPlaylist(t *testing.T) {
 		{Title: "Serenade nº13 en Sol Maj K 525 \"\"une petite musique de nuit\"\" : I. Allegro", Artist: "I Musici", Album: "Mozart, pachelbel, albinoni"},
 	}
 
-	actual, err := subject.Playlist(0)
+	actual, err := extractor.Playlist(0)
 
 	assert.Nil(t, err, "should not error")
 	assert.Equal(t, expected, actual, "should return a playlist")
@@ -70,21 +69,21 @@ func TestEmptyResponse(t *testing.T) {
 	}
 	server := mocks.Server(handler)
 	defer server.Close()
-	subject.SetEndpointURL(server.URL)
-	defer subject.SetEndpointURL("https://www.fip.fr/latest/api/graphql")
+	SetEndpointURL(server.URL)
+	defer ResetEndpointURL()
 
-	actual, err := subject.Playlist(0)
+	actual, err := extractor.Playlist(0)
 
 	assert.Nil(t, actual, "should not return a playlist")
 	assert.Error(t, err)
 }
 
 func ExamplePlaylist() {
-	var fipExtractor fip.Extractor
+	var fipExtractor Extractor
 	// Get the list of tracks played on FIP since 2020-07-25 00:30:00 GMT
 	tracks, err := fipExtractor.Playlist(1564014600)
 	if err != nil {
-		fmt.Sprintf("Could not fetch FIP tracks: %v", err)
+		fmt.Errorf("Could not fetch FIP tracks: %v", err)
 	}
 
 	fmt.Println(tracks)
