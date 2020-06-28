@@ -8,4 +8,7 @@ ci:
 	go get -t -d -v ./... && make test
 
 lint:
-	go get -u golang.org/x/lint/golint && golint ./...
+	golint ./...
+
+get_tools:
+	go get -u golang.org/x/lint/golint
