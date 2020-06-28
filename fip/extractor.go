@@ -115,8 +115,18 @@ func buildRequest(from int64) (*http.Request, error) {
 
 	first := 10
 	timestamp := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(from, 10)))
-	const fip = 7
-	stationID := fip
+	var stationIDs = map[string]int{
+		"fip":            7,
+		"fipRock":        64,
+		"fipJazz":        65,
+		"fipGroove":      66,
+		"fipPop":         78,
+		"fipElectro":     74,
+		"fipMonde":       69,
+		"fipReggae":      71,
+		"fipToutNouveau": 70,
+	}
+	station := stationIDs["fip"]
 
 	logger.Info.Printf(
 		"Preparing to fetch playlist history (last %d tracks) "+
@@ -124,7 +134,7 @@ func buildRequest(from int64) (*http.Request, error) {
 		first,
 		from,
 		time.Unix(from, 0),
-		stationID,
+		station,
 	)
 
 	req, err := http.NewRequest("GET", endpointURL, nil)
@@ -141,7 +151,7 @@ func buildRequest(from int64) (*http.Request, error) {
 			`{"first":%d,"after":"%s","stationID":%d}`,
 			first,
 			timestamp,
-			stationID,
+			station,
 		),
 	)
 	query.Add(

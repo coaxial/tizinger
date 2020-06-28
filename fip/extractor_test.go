@@ -2,6 +2,7 @@ package fip
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"testing"
 
@@ -83,7 +84,7 @@ func ExamplePlaylist() {
 	// Get the list of tracks played on FIP since 2020-07-25 00:30:00 GMT
 	tracks, err := fipExtractor.Playlist(1564014600)
 	if err != nil {
-		fmt.Errorf("Could not fetch FIP tracks: %v", err)
+		log.Fatalf("Could not fetch FIP tracks: %v", err)
 	}
 
 	fmt.Println(tracks)
