@@ -67,7 +67,6 @@ var endpointURL = "https://www.fip.fr/latest/api/graphql"
 // Playlist returns the playlist history from `timestampFrom`, which is a Unix
 // epoch in seconds.
 func (extractor Extractor) Playlist(timestampFrom int64) ([]playlist.Track, error) {
-	// TODO: Fetch 24h worth and/or check all tracks are from the same day
 	req, err := buildRequest(timestampFrom)
 	if err != nil {
 		return nil, err
