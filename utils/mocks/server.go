@@ -20,7 +20,7 @@ func Server(handler func(http.ResponseWriter, *http.Request)) *httptest.Server {
 func LoadFixture(path string) []byte {
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		logger.Error.Fatalf("Could not load %s: %v", path, err)
+		logger.Error.Fatalf("Could not load %q: %v", path, err)
 	}
 
 	return content
