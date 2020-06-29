@@ -1,14 +1,17 @@
 test:
-	go test -race ./...
+	go test -cover -race ./...
 
-test_watch:
+testwatch:
 	watch -n 5 make test
 
 ci:
-	go get -t -d -v ./... && make test
+	go get -t -d -v ./... && go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
 
 lint:
 	golint ./...
 
-get_tools:
+gettools:
 	go get -u golang.org/x/lint/golint
+
+testcovhtml:
+	go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
