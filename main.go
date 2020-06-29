@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	var fipExtractor fip.Extractor
-	list, _ := fipExtractor.Playlist(time.Now().Unix())
+	var fipClient fip.APIClient
+	list, _ := fipClient.Playlist(time.Now().Unix())
 	fmt.Printf("%#v", list)
 }

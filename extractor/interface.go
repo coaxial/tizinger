@@ -3,8 +3,8 @@ package extractor
 
 import "github.com/coaxial/tizinger/playlist"
 
-// An Extractor fetches historical playlist data from a source to return
+// A Client fetches historical playlist data from a source to return
 // playlist data that can be further parsed by Tizinger.
-type Extractor interface {
+type Client interface {
 	Playlist(timestampFrom int64) (playlist.Tracklist, error)
 }

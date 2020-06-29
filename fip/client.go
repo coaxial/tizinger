@@ -15,9 +15,8 @@ import (
 	"github.com/coaxial/tizinger/utils/logger"
 )
 
-// Extractor implements the extractor.Extractor interface for fip.fr
-type Extractor struct {
-}
+// APIClient implements the extractor.Client interface for fip.fr
+type APIClient struct{}
 
 // endpointURL is the URL where the API endpoint is located. It can be
 // overridden when testing to serve canned responses instead.
@@ -25,7 +24,7 @@ var endpointURL = "https://www.fip.fr/latest/api/graphql"
 
 // Playlist returns the playlist history from `timestampFrom`, which is a Unix
 // epoch in seconds.
-func (extractor Extractor) Playlist(timestampFrom int64) ([]playlist.Track, error) {
+func (fip APIClient) Playlist(timestampFrom int64) ([]playlist.Track, error) {
 	req, err := buildRequest(timestampFrom)
 	if err != nil {
 		return nil, err

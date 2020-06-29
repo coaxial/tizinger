@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var extractor Extractor
+var extractor APIClient
 
 func TestPlaylistErr(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
@@ -79,10 +79,10 @@ func TestEmptyResponse(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func ExampleExtractor_Playlist() {
-	var fipExtractor Extractor
+func ExampleAPIClient_Playlist() {
+	var fipClient APIClient
 	// Get the list of tracks played on FIP since 2020-07-25 00:30:00 GMT
-	tracks, err := fipExtractor.Playlist(1564014600)
+	tracks, err := fipClient.Playlist(1564014600)
 	if err != nil {
 		log.Fatalf("Could not fetch FIP tracks: %v", err)
 	}
