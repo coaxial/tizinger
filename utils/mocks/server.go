@@ -17,11 +17,12 @@ func Server(handler func(http.ResponseWriter, *http.Request)) *httptest.Server {
 
 // LoadFixture is a helper for loading canned responses to use in handler
 // functions.
-func LoadFixture(path string) []byte {
+func LoadFixture(path string) (length int, content []byte) {
 	content, err := ioutil.ReadFile(path)
+	length = len(content)
 	if err != nil {
 		logger.Error.Fatalf("Could not load %q: %v", path, err)
 	}
 
-	return content
+	return length, content
 }

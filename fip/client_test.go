@@ -17,7 +17,8 @@ func TestPlaylistErr(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusBadRequest)
 		resp.Header().Set("Content-Type", "application/html")
-		badReqResp := mocks.LoadFixture("../fixtures/fip/bad_req.json")
+		length, badReqResp := mocks.LoadFixture("../fixtures/fip/bad_req.json")
+		resp.Header().Set("Content-Length", string(length))
 		resp.Write(badReqResp)
 	}
 	server := mocks.Server(handler)
@@ -35,7 +36,8 @@ func TestPlaylist(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
-		historyJSON := mocks.LoadFixture("../fixtures/fip/history_response.json")
+		length, historyJSON := mocks.LoadFixture("../fixtures/fip/history_response.json")
+		resp.Header().Set("Content-Length", string(length))
 		resp.Write(historyJSON)
 	}
 	server := mocks.Server(handler)
@@ -66,6 +68,7 @@ func TestEmptyResponse(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		emptyResp := []byte("{}")
+		resp.Header().Set("Content-Length", string(len(emptyResp)))
 		resp.Write(emptyResp)
 	}
 	server := mocks.Server(handler)
