@@ -79,7 +79,7 @@ func TestEmptyResponse(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func ExamplePlaylist() {
+func ExampleExtractor_Playlist() {
 	var fipExtractor Extractor
 	// Get the list of tracks played on FIP since 2020-07-25 00:30:00 GMT
 	tracks, err := fipExtractor.Playlist(1564014600)
