@@ -180,6 +180,8 @@ func unmarshalResponse(response *http.Response) (historyResponse, error) {
 	return responseObject, nil
 }
 
+// buildTracklist picks the relevant metadata from the API response and puts it
+// into a []playlist.Track
 func buildTracklist(JSON historyResponse) ([]playlist.Track, error) {
 	logger.Trace.Println(JSON)
 	var trackList []playlist.Track
