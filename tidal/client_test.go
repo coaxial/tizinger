@@ -20,8 +20,8 @@ func TestFetchTokensSuccess(t *testing.T) {
 	defer server.Close()
 	want := "mockToken"
 
-	got, err := FetchToken(server.URL)
+	_, err := FetchToken(server.URL)
 
 	assert.Nil(t, err, "should not have errored")
-	assert.Equal(t, want, got, "should have gotten a mock token")
+	assert.Equal(t, want, tidalToken, "should have gotten a mock token")
 }

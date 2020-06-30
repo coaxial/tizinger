@@ -151,15 +151,14 @@ func makeRequest(req *http.Request, client *http.Client) (*http.Response, error)
 }
 
 // unmarshalResponse parses the API response and unmarshals it to JSON.
-func unmarshalResponse(response *http.Response) (historyResponse, error) {
-	var responseObject historyResponse
+func unmarshalResponse(response *http.Response) (history historyResponse, err error) {
 
 	responseData, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
 	if err != nil {
 		errMsg := fmt.Sprintf("Error while reading response data: %v", err)
 		logger.Error.Print(errMsg)
-		return responseObject, err
+		return history, err
 	}
 	// A response that isn't HTTP 200 OK will still make err nil, so a
 	// check needs to be done to see whether it succeeded or failed.
@@ -170,13 +169,17 @@ func unmarshalResponse(response *http.Response) (historyResponse, error) {
 			string(responseData),
 		)
 		logger.Error.Printf(errMsg)
-		return responseObject, errors.New(errMsg)
+		return history, errors.New(errMsg)
 	}
 
 	// We most likely have the playlist data, time to unmarshal it and pick
 	// the fields we want.
-	json.Unmarshal(responseData, &responseObject)
-	return responseObject, nil
+	err = json.Unmarshal(responseData, &history)
+	if err != nil {
+		logger.Error.Printf("error unmarshalling history response: %v", err)
+		return history, err
+	}
+	return history, err
 }
 
 // buildTracklist picks the relevant metadata from the API response and puts it
