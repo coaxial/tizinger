@@ -34,20 +34,15 @@ type userData struct {
 	UserID      int
 }
 
-// loginResponse is the JSON object returned from a successful login request.
-type loginResponse struct {
-	SessionID   string `json:"sessionId"`
-	CountryCode string `json:"countryCode"`
-	UserID      int    `json:"userId"`
-}
-
 var tidalUserData userData
 
 // composeHeaders adds the necessary headers to the request
-func composeHeaders(req *http.Request) *http.Request {
+func composeHeaders(req *http.Request) {
 	req.Header.Add("Origin", "https://listen.tidal.com")
 	req.Header.Add("X-Tidal-SessionId", tidalUserData.SessionID)
-	return req
+	q := req.URL.Query()
+	q.Add("token", tidalToken)
+	req.URL.RawQuery = q.Encode()
 }
 
 // CreatePlaylist creates playlists on Tidal.
