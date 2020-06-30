@@ -10,7 +10,6 @@ import (
 
 	"github.com/coaxial/tizinger/playlist"
 	"github.com/coaxial/tizinger/utils/logger"
-	"gopkg.in/yaml.v3"
 )
 
 // APIClient implements exporter.Client.
@@ -32,14 +31,14 @@ var tidalClient = &http.Client{
 type userData struct {
 	SessionID   string
 	CountryCode string
-	UserID      string
+	UserID      int
 }
 
 // loginResponse is the JSON object returned from a successful login request.
 type loginResponse struct {
 	SessionID   string `json:"sessionId"`
 	CountryCode string `json:"countryCode"`
-	UserID      string `json:"userId"`
+	UserID      int    `json:"userId"`
 }
 
 var tidalUserData userData
@@ -108,42 +107,11 @@ func setToken() (ok bool, err error) {
 	return ok, err
 }
 
-// credentialsYAML matches the format for individual credential entries in
-// credentials.yml
-type credentialsYAML struct {
-	Tidal struct {
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-	} `yaml:"tidal,inline,omitempty"`
-}
-
-var credentials credentialsYAML
-
-// readCredentials reads the usernames and passwords from the credentials.yml
-// file and unmarshals them into a Go struct
-// TODO: extract credentials to own module
-// TODO: access through getters and setters
-func readCredentials() (ok bool, err error) {
-	credentialsFile := "credentials.yml"
-	content, err := ioutil.ReadFile(credentialsFile)
-	if err != nil {
-		logger.Error.Printf("could not read %q: %v", credentialsFile, err)
-		return ok, err
-	}
-
-	err = yaml.Unmarshal(content, &credentials)
-	if err != nil {
-		logger.Error.Printf("could not parse %q: %v", credentialsFile, err)
-		return ok, err
-	}
-	ok = true
-	return ok, err
-}
-
-// login performs a login with the Tidal API.
-func login() (ok bool, err error) {
+// login performs a login with the Tidal API for a given username and password.
+func login(username string, password string) (ok bool, err error) {
+	logger.Trace.Printf("preparing to log user %q in", username)
 	endpoint := "/login/username"
-	var payload = fmt.Sprintf(`{"username":%q,"password":%q}`, credentials.Tidal.Username, credentials.Tidal.Password)
+	var payload = fmt.Sprintf(`{"username":%q,"password":%q}`, username, password)
 	uri := baseURL + endpoint
 	loginRequest, err := http.NewRequest(http.MethodPost, uri, strings.NewReader(payload))
 	if err != nil {
