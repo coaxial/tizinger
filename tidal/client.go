@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/coaxial/tizinger/playlist"
+	"github.com/coaxial/tizinger/extractor"
 	"github.com/coaxial/tizinger/utils/logger"
 )
 
@@ -46,7 +46,7 @@ func composeHeaders(req *http.Request) {
 }
 
 // CreatePlaylist creates playlists on Tidal.
-func (ac APIClient) CreatePlaylist(name string, tracks playlist.Tracklist) (ok bool, err error) {
+func (ac APIClient) CreatePlaylist(name string, tracks extractor.Tracklist) (ok bool, err error) {
 	ok, err = setToken()
 	if err != nil {
 		logger.Error.Printf("could not fetch tokens: %v", err)

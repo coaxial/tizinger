@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/coaxial/tizinger/playlist"
+	"github.com/coaxial/tizinger/extractor"
 	"github.com/coaxial/tizinger/utils/logger"
 )
 
@@ -24,7 +24,7 @@ var endpointURL = "https://www.fip.fr/latest/api/graphql"
 
 // Playlist returns the playlist history from `timestampFrom`, which is a Unix
 // epoch in seconds.
-func (fip APIClient) Playlist(timestampFrom int64) ([]playlist.Track, error) {
+func (fip APIClient) Playlist(timestampFrom int64) ([]extractor.Track, error) {
 	req, err := buildRequest(timestampFrom)
 	if err != nil {
 		return nil, err
@@ -183,13 +183,13 @@ func unmarshalResponse(response *http.Response) (history historyResponse, err er
 }
 
 // buildTracklist picks the relevant metadata from the API response and puts it
-// into a []playlist.Track
-func buildTracklist(JSON historyResponse) ([]playlist.Track, error) {
+// into a []extractor.Track
+func buildTracklist(JSON historyResponse) ([]extractor.Track, error) {
 	logger.Trace.Println(JSON)
-	var trackList []playlist.Track
+	var trackList []extractor.Track
 
 	for _, v := range JSON.Data.TimelineCursor.Edges {
-		var track = playlist.Track{
+		var track = extractor.Track{
 			Title:  v.Node.Title,
 			Artist: v.Node.Artist,
 			Album:  v.Node.Album,

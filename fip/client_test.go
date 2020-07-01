@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/coaxial/tizinger/playlist"
+	"github.com/coaxial/tizinger/extractor"
 	"github.com/coaxial/tizinger/utils/mocks"
 	"github.com/stretchr/testify/assert"
 )
 
-var extractor APIClient
+var client APIClient
 
 func TestPlaylistErr(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
@@ -26,7 +26,7 @@ func TestPlaylistErr(t *testing.T) {
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()
 
-	actual, err := extractor.Playlist(0)
+	actual, err := client.Playlist(0)
 
 	assert.Nil(t, actual)
 	assert.Error(t, err, "should return an error")
@@ -44,7 +44,7 @@ func TestPlaylist(t *testing.T) {
 	defer server.Close()
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()
-	expected := []playlist.Track{
+	expected := []extractor.Track{
 		{Title: "Scar tissue", Artist: "Red Hot Chili Peppers", Album: "Greatest hits"},
 		{Title: "Off the wall", Artist: "Jil Is Lucky", Album: "Off the wall"},
 		{Title: "Kalimba (Flute mix)", Artist: "Freakniks", Album: "Electro tunes"},
@@ -57,7 +57,7 @@ func TestPlaylist(t *testing.T) {
 		{Title: "Serenade nº13 en Sol Maj K 525 \"\"une petite musique de nuit\"\" : I. Allegro", Artist: "I Musici", Album: "Mozart, pachelbel, albinoni"},
 	}
 
-	actual, err := extractor.Playlist(0)
+	actual, err := client.Playlist(0)
 
 	assert.Nil(t, err, "should not error")
 	assert.Equal(t, expected, actual, "should return a playlist")
@@ -76,7 +76,7 @@ func TestEmptyResponse(t *testing.T) {
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()
 
-	actual, err := extractor.Playlist(0)
+	actual, err := client.Playlist(0)
 
 	assert.Nil(t, actual, "should not return a playlist")
 	assert.Error(t, err)
