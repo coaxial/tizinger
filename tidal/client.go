@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/coaxial/tizinger/extractor"
@@ -106,7 +107,7 @@ func setToken() (ok bool, err error) {
 func login(username string, password string) (ok bool, err error) {
 	logger.Trace.Printf("preparing to log user %q in", username)
 	endpoint := "/login/username"
-	var payload = fmt.Sprintf(`{"username":%q,"password":%q}`, username, password)
+	payload := fmt.Sprintf(`{"username":%q,"password":%q}`, username, password)
 	uri := baseURL + endpoint
 	loginRequest, err := http.NewRequest(http.MethodPost, uri, strings.NewReader(payload))
 	if err != nil {
@@ -132,4 +133,39 @@ func login(username string, password string) (ok bool, err error) {
 	ok = true
 	logger.Info.Printf("successfully logged in")
 	return ok, err
+}
+
+func createEmptyPlaylist(userID int, name string, desc string) (UUID string, lu tidalTimestamp, err error) {
+	logger.Trace.Printf("creating playlist (name: %q, desc: %q) for user %q", name, desc, strconv.Itoa(userID))
+	endpoint := "/users/" + strconv.Itoa(userID) + "/playlists"
+	payload := fmt.Sprintf(`{"title":%q,"desc":%q}`, name, desc)
+	uri := baseURL + endpoint
+	createReq, err := http.NewRequest(http.MethodPost, uri, strings.NewReader(payload))
+	if err != nil {
+		logger.Error.Printf("error building create playslist request: %v", err)
+		return UUID, lu, err
+	}
+	composeHeaders(createReq)
+	logger.Info.Printf("sending create playlist request to %q", uri)
+	resp, err := tidalClient.Do(createReq)
+	logger.Info.Printf("received response %q, %d bytes", resp.Header.Get("Content-Type"), resp.ContentLength)
+	contents, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		logger.Error.Printf("error reading response: %v", err)
+		return UUID, lu, err
+	}
+	var playlistJSON playlist
+	err = json.Unmarshal(contents, &playlistJSON)
+	if err != nil {
+		logger.Error.Printf("error unmarshalling response: %v", err)
+		return UUID, lu, err
+	}
+
+	UUID, lu = playlistJSON.UUID, playlistJSON.LastUpdated
+
+	logger.Info.Printf("successfully created new playlist")
+	logger.Trace.Printf("new playlist UUID: %q, title: %q, desc: %q", playlistJSON.UUID, playlistJSON.Title, playlistJSON.Description)
+
+	return UUID, lu, err
 }

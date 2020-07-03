@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/coaxial/tizinger/utils/mocks"
 	"github.com/stretchr/testify/assert"
@@ -74,4 +75,32 @@ func TestComposeHeadersSessionID(t *testing.T) {
 	composeHeaders(mockReq)
 
 	assert.Equal(t, "mock-session-id", mockReq.Header.Get("X-Tidal-SessionId"), "should set the headers")
+}
+
+func TestCreateEmptyPlaylist(t *testing.T) {
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-create_response.json")
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		resp.Header().Set("Content-Length", string(length))
+		resp.Write(JSON)
+	}
+	server := mocks.Server(handler)
+	defer server.Close()
+	originalURL = baseURL
+	baseURL = server.URL
+	defer func() { baseURL = originalURL }()
+
+	UUID, lu, err := createEmptyPlaylist(1337, "mock playlist name", "mock playlist description")
+	want := struct {
+		UUID string
+		lu   tidalTimestamp
+	}{
+		"mock-playlist-uuid",
+		tidalTimestamp{time.Date(2020, 7, 25, 0, 30, 0, 0, time.UTC)},
+	}
+
+	assert.Equal(t, want.UUID, UUID, "should have returned the created playlist's UUID")
+	assert.Equal(t, true, want.lu.Equal(lu.UTC()), "should have returned the last updated time")
+	assert.Nil(t, err, "should not have errored")
 }
