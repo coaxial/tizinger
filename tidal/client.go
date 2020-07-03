@@ -56,6 +56,37 @@ func (ac APIClient) CreatePlaylist(name string, tracks extractor.Tracklist) (ok 
 	return ok, err
 }
 
+// queryTidal prepares and sends queries to the Tidal API. uri is where to send
+// the request, payload is the JSON to send either in the body for
+// http.MethodGet or as a form for http.MethodPost. method is the HTTP method
+// to use, tidalJSON is a pointer to the struct to which the response will be
+// unmarshalled.
+func queryTidal(uri string, payload string, method string, tidalJSON interface{}) (err error) {
+	logger.Trace.Printf("preparing %q request to %q", method, uri)
+	req, err := http.NewRequest(method, uri, strings.NewReader(payload))
+	if err != nil {
+		logger.Error.Printf("error building request: %v", err)
+		return err
+	}
+	composeHeaders(req)
+	logger.Info.Printf("sending %q request to %q", method, uri)
+	// Using a global client so that we can reuse connections etc.
+	resp, err := tidalClient.Do(req)
+	logger.Info.Printf("received response %q, %d bytes", resp.Header.Get("Content-Type"), resp.ContentLength)
+	contents, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		logger.Error.Printf("error reading response: %v", err)
+		return err
+	}
+	err = json.Unmarshal(contents, &tidalJSON)
+	if err != nil {
+		logger.Error.Printf("error unmarshalling response: %v", err)
+		return err
+	}
+	return err
+}
+
 // manifestURL is the tokens manifest's location.
 // curtesy of https://github.com/yaronzz/Tidal-Media-Downloader
 var manifestURL = "https://cdn.jsdelivr.net/gh/yaronzz/Tidal-Media-Downloader@latest/Else/tokens.json"
@@ -104,35 +135,20 @@ func setToken() (ok bool, err error) {
 }
 
 // login performs a login with the Tidal API for a given username and password.
-func login(username string, password string) (ok bool, err error) {
+func login(username string, password string) (err error) {
 	logger.Trace.Printf("preparing to log user %q in", username)
 	endpoint := "/login/username"
 	payload := fmt.Sprintf(`{"username":%q,"password":%q}`, username, password)
 	uri := baseURL + endpoint
-	loginRequest, err := http.NewRequest(http.MethodPost, uri, strings.NewReader(payload))
+
+	err = queryTidal(uri, payload, http.MethodPost, &tidalUserData)
 	if err != nil {
-		logger.Error.Printf("error building login request: %v", err)
-		return ok, err
-	}
-	composeHeaders(loginRequest)
-	logger.Info.Printf("sending login request to %q", uri)
-	resp, err := tidalClient.Do(loginRequest)
-	logger.Info.Printf("received login response %q, %d bytes", resp.Header.Get("Content-Type"), resp.ContentLength)
-	contents, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	if err != nil {
-		logger.Error.Printf("error reading login response: %v", err)
-		return ok, err
-	}
-	err = json.Unmarshal(contents, &tidalUserData)
-	if err != nil {
-		logger.Error.Printf("error unmarshalling login response: %v", err)
-		return ok, err
+		logger.Error.Printf("error logging in: %q", err)
+		return err
 	}
 
-	ok = true
 	logger.Info.Printf("successfully logged in")
-	return ok, err
+	return err
 }
 
 func createEmptyPlaylist(userID int, name string, desc string) (UUID string, lu tidalTimestamp, err error) {
@@ -140,32 +156,22 @@ func createEmptyPlaylist(userID int, name string, desc string) (UUID string, lu 
 	endpoint := "/users/" + strconv.Itoa(userID) + "/playlists"
 	payload := fmt.Sprintf(`{"title":%q,"desc":%q}`, name, desc)
 	uri := baseURL + endpoint
-	createReq, err := http.NewRequest(http.MethodPost, uri, strings.NewReader(payload))
-	if err != nil {
-		logger.Error.Printf("error building create playslist request: %v", err)
-		return UUID, lu, err
-	}
-	composeHeaders(createReq)
-	logger.Info.Printf("sending create playlist request to %q", uri)
-	resp, err := tidalClient.Do(createReq)
-	logger.Info.Printf("received response %q, %d bytes", resp.Header.Get("Content-Type"), resp.ContentLength)
-	contents, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	if err != nil {
-		logger.Error.Printf("error reading response: %v", err)
-		return UUID, lu, err
-	}
+
 	var playlistJSON playlist
-	err = json.Unmarshal(contents, &playlistJSON)
+	err = queryTidal(uri, payload, http.MethodPost, &playlistJSON)
 	if err != nil {
-		logger.Error.Printf("error unmarshalling response: %v", err)
+		logger.Error.Printf("error creating empty playlist: %q", err)
 		return UUID, lu, err
 	}
 
 	UUID, lu = playlistJSON.UUID, playlistJSON.LastUpdated
 
-	logger.Info.Printf("successfully created new playlist")
-	logger.Trace.Printf("new playlist UUID: %q, title: %q, desc: %q", playlistJSON.UUID, playlistJSON.Title, playlistJSON.Description)
+	logger.Info.Printf("successfully created empty playlist (%q)", playlistJSON.UUID)
+	logger.Trace.Printf("playlist UUID: %q, title: %q, desc: %q", playlistJSON.UUID, playlistJSON.Title, playlistJSON.Description)
 
 	return UUID, lu, err
+}
+
+func search(trackName string, artist string, album string) (trackID int, err error) {
+	return trackID, err
 }

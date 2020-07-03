@@ -43,10 +43,9 @@ func TestLogin(t *testing.T) {
 	defer func() { baseURL = originalURL }()
 	want := userData{SessionID: "mock-session-id", CountryCode: "MK", UserID: 133713373}
 
-	ok, err := login("mockuser@example.org", "secret")
+	err := login("mockuser@example.org", "secret")
 
 	assert.Nil(t, err, "should not have errored")
-	assert.True(t, ok, "should have succeeded")
 	assert.Equal(t, want, tidalUserData, "should have populated user data")
 }
 
