@@ -34,18 +34,13 @@ type loginResponse struct {
 
 // trackResponse is the JSON object returned for a search request
 type trackResponse struct {
-	Limit              int      `json:"limit"`
-	Offset             int      `json:"offset"`
-	TotalNumberOfItems int      `json:"totalNumberOfItems"`
-	Tracks             []tracks `json:"items"`
+	Limit              int     `json:"limit"`
+	Offset             int     `json:"offset"`
+	TotalNumberOfItems int     `json:"totalNumberOfItems"`
+	Tracks             []track `json:"items"`
 }
 
 type artist struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-type artists struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 	Type string `json:"type"`
@@ -56,7 +51,7 @@ type album struct {
 	Cover      string      `json:"cover"`
 	VideoCover interface{} `json:"videoCover"`
 }
-type tracks struct {
+type track struct {
 	ID                   int            `json:"id"`
 	Title                string         `json:"title"`
 	Duration             int            `json:"duration"`
@@ -78,7 +73,7 @@ type tracks struct {
 	AudioQuality         string         `json:"audioQuality"`
 	AudioModes           []string       `json:"audioModes"`
 	Artist               artist         `json:"artist"`
-	Artists              []artists      `json:"artists"`
+	Artists              []artist       `json:"artists"`
 	Album                album          `json:"album"`
 }
 
