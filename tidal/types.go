@@ -98,3 +98,10 @@ type playlist struct {
 	PromotedArtists []interface{}  `json:"promotedArtists"`
 	LastItemAddedAt interface{}    `json:"lastItemAddedAt"`
 }
+
+type searchResponse struct {
+	Results            []track `json:"items"`
+	Limit              int     `json:"limit"`
+	Offset             int     `json:"offset"`
+	TotalNumberOfItems int     `json:"TotalNumberOfItems"`
+}

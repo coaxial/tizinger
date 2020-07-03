@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -37,12 +38,13 @@ type userData struct {
 
 var tidalUserData userData
 
-// composeHeaders adds the necessary headers to the request
-func composeHeaders(req *http.Request) {
+// addTidalData adds the necessary headers to the request
+func addTidalData(req *http.Request) {
 	req.Header.Add("Origin", "https://listen.tidal.com")
 	req.Header.Add("X-Tidal-SessionId", tidalUserData.SessionID)
 	q := req.URL.Query()
 	q.Add("token", tidalToken)
+	q.Add("countryCode", tidalUserData.CountryCode)
 	req.URL.RawQuery = q.Encode()
 }
 
@@ -61,14 +63,36 @@ func (ac APIClient) CreatePlaylist(name string, tracks extractor.Tracklist) (ok 
 // http.MethodGet or as a form for http.MethodPost. method is the HTTP method
 // to use, tidalJSON is a pointer to the struct to which the response will be
 // unmarshalled.
-func queryTidal(uri string, payload string, method string, tidalJSON interface{}) (err error) {
+func queryTidal(uri string, query map[string]string, payload string, method string, tidalJSON interface{}) (err error) {
 	logger.Trace.Printf("preparing %q request to %q", method, uri)
 	req, err := http.NewRequest(method, uri, strings.NewReader(payload))
 	if err != nil {
 		logger.Error.Printf("error building request: %v", err)
 		return err
 	}
-	composeHeaders(req)
+	addTidalData(req)
+
+	// Add the caller's querystring elements to the request
+	for k, v := range query {
+		q := req.URL.Query()
+		q.Add(k, v)
+		req.URL.RawQuery = q.Encode()
+	}
+
+	// Log request payload and query string for debugging
+	body, err := req.GetBody()
+	if err != nil {
+		logger.Error.Printf("error %v", err)
+	}
+	debugBody, _ := ioutil.ReadAll(body)
+	debugyBodyString := string(debugBody)
+	qs := req.URL.RawQuery
+	// Remove password from logs (when logging in)
+	re := regexp.MustCompile(`(?P<firstHalf>.*"password":")(?P<passwordValue>.*?)(?P<SecondHalf>".*)`)
+	debugyBodyString = re.ReplaceAllString(debugyBodyString, `$1<redacted>$3`)
+	logger.Trace.Printf("request: body: %#v", string(debugyBodyString))
+	logger.Trace.Printf("qs: %q", string(qs))
+
 	logger.Info.Printf("sending %q request to %q", method, uri)
 	// Using a global client so that we can reuse connections etc.
 	resp, err := tidalClient.Do(req)
@@ -141,7 +165,7 @@ func login(username string, password string) (err error) {
 	payload := fmt.Sprintf(`{"username":%q,"password":%q}`, username, password)
 	uri := baseURL + endpoint
 
-	err = queryTidal(uri, payload, http.MethodPost, &tidalUserData)
+	err = queryTidal(uri, nil, payload, http.MethodPost, &tidalUserData)
 	if err != nil {
 		logger.Error.Printf("error logging in: %q", err)
 		return err
@@ -158,7 +182,7 @@ func createEmptyPlaylist(userID int, name string, desc string) (UUID string, lu 
 	uri := baseURL + endpoint
 
 	var playlistJSON playlist
-	err = queryTidal(uri, payload, http.MethodPost, &playlistJSON)
+	err = queryTidal(uri, nil, payload, http.MethodPost, &playlistJSON)
 	if err != nil {
 		logger.Error.Printf("error creating empty playlist: %q", err)
 		return UUID, lu, err
@@ -172,6 +196,16 @@ func createEmptyPlaylist(userID int, name string, desc string) (UUID string, lu 
 	return UUID, lu, err
 }
 
-func search(trackName string, artist string, album string) (trackID int, err error) {
+func search(track string, artist string, album string) (trackID int, err error) {
+	logger.Info.Printf("search for track %q from artist %q on album %q", track, artist, album)
+	endpoint := "/search/tracks"
+	uri := baseURL + endpoint
+	searchTerms := fmt.Sprintf("%s %s", track, artist)
+	payload := `{"limit":"1","offset":"0","types":"TRACKS","includeContributors":"true"}`
+	query := map[string]string{"query": searchTerms}
+	var searchJSON searchResponse
+
+	err = queryTidal(uri, query, payload, http.MethodGet, &searchJSON)
+	trackID = searchJSON.Results[0].ID
 	return trackID, err
 }

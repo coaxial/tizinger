@@ -60,7 +60,7 @@ func TestComposeHeadersNilSessionID(t *testing.T) {
 
 	tidalToken = "mockToken"
 	mockReq, _ := http.NewRequest(http.MethodPost, "http://localhost", strings.NewReader(""))
-	composeHeaders(mockReq)
+	addTidalData(mockReq)
 
 	for _, w := range want {
 		assert.Equal(t, w.value, mockReq.Header.Get(w.header), "should set the headers")
@@ -68,12 +68,16 @@ func TestComposeHeadersNilSessionID(t *testing.T) {
 	assert.Equal(t, "mockToken", mockReq.URL.Query().Get("token"), "should add token to request")
 }
 
-func TestComposeHeadersSessionID(t *testing.T) {
+func TestComposeHeaders(t *testing.T) {
 	tidalUserData.SessionID = "mock-session-id"
+	tidalUserData.CountryCode = "MK"
+	tidalToken = "mock-token"
 	mockReq, _ := http.NewRequest(http.MethodPost, "http://localhost", strings.NewReader(""))
-	composeHeaders(mockReq)
+	addTidalData(mockReq)
 
 	assert.Equal(t, "mock-session-id", mockReq.Header.Get("X-Tidal-SessionId"), "should set the headers")
+	assert.Equal(t, "MK", mockReq.URL.Query().Get("countryCode"), "should set the country code")
+	assert.Equal(t, "mock-token", mockReq.URL.Query().Get("token"), "should set the token")
 }
 
 func TestCreateEmptyPlaylist(t *testing.T) {
@@ -102,4 +106,26 @@ func TestCreateEmptyPlaylist(t *testing.T) {
 	assert.Equal(t, want.UUID, UUID, "should have returned the created playlist's UUID")
 	assert.Equal(t, true, want.lu.Equal(lu.UTC()), "should have returned the last updated time")
 	assert.Nil(t, err, "should not have errored")
+}
+
+func TestSearch(t *testing.T) {
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		length, JSON := mocks.LoadFixture("../fixtures/tidal/search-track_result_response.json")
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		resp.Header().Set("Content-Length", string(length))
+		resp.Write(JSON)
+	}
+	server := mocks.Server(handler)
+	defer server.Close()
+	originalURL = baseURL
+	baseURL = server.URL
+	defer func() { baseURL = originalURL }()
+
+	got, err := search("mock track", "mock artist", "mock album")
+	want := 132616868
+
+	assert.Equal(t, want, got, "should have returned the track's ID")
+	assert.Nil(t, err, "should not have errored")
+
 }
