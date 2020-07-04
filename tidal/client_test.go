@@ -22,7 +22,7 @@ func TestFetchingTokens(t *testing.T) {
 	defer server.Close()
 	want := "mockToken"
 
-	_, err := SetToken(server.URL)
+	err := SetToken(server.URL)
 
 	assert.Nil(t, err, "should not have errored")
 	assert.Equal(t, want, tidalToken, "should have gotten a mock token")
@@ -164,4 +164,43 @@ func TestQueryNok(t *testing.T) {
 
 	assert.Error(t, err, "should have errored")
 	assert.Equal(t, got, -1, "should not have found a track")
+}
+
+func TestPopulatePlaylist(t *testing.T) {
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-add_success_response.json")
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		resp.Header().Set("Content-Length", string(length))
+		resp.Write(JSON)
+	}
+	server := mocks.Server(handler)
+	defer server.Close()
+	originalURL = baseURL
+	baseURL = server.URL
+	defer func() { baseURL = originalURL }()
+
+	tests := []struct {
+		input []int
+		want  int
+		msg   string
+	}{
+		{
+			[]int{42, 666, 1337},
+			3,
+			"should have returned the number of unique tracks added",
+		}, {
+			[]int{666, 42, 666, 1337},
+			3,
+			"should have returned the number of unique tracks added",
+		},
+	}
+	playlist := "mockUUID"
+	var lu tidalTimestamp
+
+	for _, test := range tests {
+		got, err := populatePlaylist(test.input, playlist, lu)
+		assert.Nil(t, err, "should not have errored")
+		assert.Equal(t, test.want, got, test.msg)
+	}
 }

@@ -105,3 +105,8 @@ type searchResponse struct {
 	Offset             int     `json:"offset"`
 	TotalNumberOfItems int     `json:"TotalNumberOfItems"`
 }
+
+type populatePlaylistResult struct {
+	LastUpdated  int64 `json:"lastUpdated"`
+	AddedItemIds []int `json:"addedItemIds"`
+}

@@ -9,8 +9,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/coaxial/tizinger/extractor"
+	"github.com/coaxial/tizinger/utils/helpers"
 	"github.com/coaxial/tizinger/utils/logger"
 )
 
@@ -49,13 +51,13 @@ func addTidalData(req *http.Request) {
 }
 
 // CreatePlaylist creates playlists on Tidal.
-func (ac APIClient) CreatePlaylist(name string, tracks extractor.Tracklist) (ok bool, err error) {
-	ok, err = setToken()
+func (ac APIClient) CreatePlaylist(name string, tracks extractor.Tracklist) (err error) {
+	err = setToken()
 	if err != nil {
 		logger.Error.Printf("could not fetch tokens: %v", err)
-		return ok, err
+		return err
 	}
-	return ok, err
+	return err
 }
 
 // queryTidal prepares and sends queries to the Tidal API. uri is where to send
@@ -95,6 +97,7 @@ func queryTidal(
 	body, err := req.GetBody()
 	if err != nil {
 		logger.Error.Printf("error %v", err)
+		return err
 	}
 	debugBody, _ := ioutil.ReadAll(body)
 	debugyBodyString := string(debugBody)
@@ -141,7 +144,7 @@ var tidalToken string
 // setToken gets the currently valid token to send along with API requests.
 // The purpose it to avoid hard-coding tokens so that the calls don't fail when
 // Tidal rotates the token like they did in June 2020.
-func setToken() (ok bool, err error) {
+func setToken() (err error) {
 	type tokensResponse struct {
 		Token      string `json:"token"`
 		TokenPhone string `json:"token_phone"`
@@ -156,26 +159,25 @@ func setToken() (ok bool, err error) {
 	)
 	if err != nil {
 		logger.Error.Printf("error fetching API tokens from %q: %v", manifestURL, err)
-		return ok, err
+		return err
 	}
 
 	tokens, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		logger.Error.Printf("error reading response: %v", err)
-		return ok, err
+		return err
 	}
 
 	var JSONTokens tokensResponse
 	err = json.Unmarshal(tokens, &JSONTokens)
 	if err != nil {
 		logger.Error.Printf("error unmarshalling token: %v", err)
-		return ok, err
+		return err
 	}
 	tidalToken = JSONTokens.Token
-	ok = true
 	logger.Info.Printf("successfully set API token")
-	return ok, err
+	return err
 }
 
 // login performs a login with the Tidal API for a given username and password.
@@ -242,4 +244,31 @@ func search(track string, artist string, album string) (trackID int, err error) 
 	trackID = searchJSON.Results[0].ID
 	logger.Info.Printf("found matching track with ID %q", trackID)
 	return trackID, err
+}
+
+// populatePlaylist adds the tracks with trackID to the playlist with
+// playlistUUID. lu is the last updated timestamp on target playlist.
+func populatePlaylist(trackIDs []int, playlistID string, lu tidalTimestamp) (countAdded int, err error) {
+	uniqIDs := helpers.Uniq(trackIDs)
+	logger.Info.Printf("adding %d tracks to playlist %q", len(uniqIDs), playlistID)
+	logger.Trace.Printf("trackIDs: %#v", trackIDs)
+	endpoint := "/playlists/" + playlistID + "/items"
+	uri := baseURL + endpoint
+	inmHeader := lu.UnixNano() / int64(time.Millisecond)
+
+	for i, ID := range uniqIDs {
+		logger.Info.Printf("adding track %d (%d/%d)", ID, i+1, len(uniqIDs))
+		payload := `{"onArtifactNotFound":"FAIL","onDupes":"FAIL","trackIds":` + strconv.Itoa(ID) + `}`
+		header := map[string]string{"If-None-Match": strconv.FormatInt(inmHeader, 10)}
+		var populateResult populatePlaylistResult
+		err = queryTidal(uri, header, nil, payload, http.MethodPost, &populateResult)
+		if err != nil {
+			logger.Error.Printf("error adding track %d to playlist %q:%v", ID, playlistID, err)
+			return countAdded, err
+		}
+		logger.Info.Printf("successfully added track %d (%d/%d) to playlist %q", ID, i+1, len(uniqIDs), playlistID)
+		countAdded++
+	}
+	logger.Info.Printf("successfully added %d/%d tracks to playlist %q", countAdded, len(uniqIDs), playlistID)
+	return countAdded, err
 }

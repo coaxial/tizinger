@@ -23,14 +23,14 @@ func ResetBaseURL() {
 
 // SetToken is a wrapper for the fetchToken method so that the token
 // manifest URL can be overridden.
-func SetToken(url string) (ok bool, err error) {
+func SetToken(url string) (err error) {
 	originalURL := manifestURL
 	logger.Trace.Printf("tokens manifest URL overridden to %q", url)
 	manifestURL = url
-	ok, err = setToken()
+	err = setToken()
 	defer func() {
 		manifestURL = originalURL
 		logger.Trace.Printf("tokens manifest URL reset to %q", originalURL)
 	}()
-	return ok, err
+	return err
 }
