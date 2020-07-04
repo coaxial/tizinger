@@ -96,6 +96,14 @@ func queryTidal(uri string, query map[string]string, payload string, method stri
 	logger.Info.Printf("sending %q request to %q", method, uri)
 	// Using a global client so that we can reuse connections etc.
 	resp, err := tidalClient.Do(req)
+	if err != nil {
+		logger.Error.Printf("error making request: %v", err)
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		logger.Warning.Printf("Tidal API didn't respond with 200 OK: HTTP %d", resp.StatusCode)
+		return fmt.Errorf("Tidal server responded with HTTP %d", resp.StatusCode)
+	}
 	logger.Info.Printf("received response %q, %d bytes", resp.Header.Get("Content-Type"), resp.ContentLength)
 	contents, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
@@ -175,6 +183,8 @@ func login(username string, password string) (err error) {
 	return err
 }
 
+// createEmptyPlaylist creates a new, empty playlist with name name and
+// description desc for user userID on Tidal.
 func createEmptyPlaylist(userID int, name string, desc string) (UUID string, lu tidalTimestamp, err error) {
 	logger.Trace.Printf("creating playlist (name: %q, desc: %q) for user %q", name, desc, strconv.Itoa(userID))
 	endpoint := "/users/" + strconv.Itoa(userID) + "/playlists"
@@ -196,7 +206,10 @@ func createEmptyPlaylist(userID int, name string, desc string) (UUID string, lu 
 	return UUID, lu, err
 }
 
+// search will search for "<track> <artist>" on Tidal and return the track's
+// Tidal ID. The ID is -1 if there are no results for that search.
 func search(track string, artist string, album string) (trackID int, err error) {
+	trackID = -1 // -1 means track not found
 	logger.Info.Printf("search for track %q from artist %q on album %q", track, artist, album)
 	endpoint := "/search/tracks"
 	uri := baseURL + endpoint
@@ -206,6 +219,15 @@ func search(track string, artist string, album string) (trackID int, err error) 
 	var searchJSON searchResponse
 
 	err = queryTidal(uri, query, payload, http.MethodGet, &searchJSON)
+	if err != nil {
+		logger.Error.Printf("error looking for track %q: %v", track+" "+artist, err)
+		return trackID, err
+	}
+	if len(searchJSON.Results) == 0 {
+		logger.Info.Printf("no matching track found for track %q", track+" "+artist)
+		return trackID, err
+	}
 	trackID = searchJSON.Results[0].ID
+	logger.Info.Printf("found matching track with ID %q", trackID)
 	return trackID, err
 }

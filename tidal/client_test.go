@@ -129,3 +129,40 @@ func TestSearch(t *testing.T) {
 	assert.Nil(t, err, "should not have errored")
 
 }
+
+func TestSearchNoResult(t *testing.T) {
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		length, JSON := mocks.LoadFixture("../fixtures/tidal/search-track_noresult_response.json")
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		resp.Header().Set("Content-Length", string(length))
+		resp.Write(JSON)
+	}
+	server := mocks.Server(handler)
+	defer server.Close()
+	originalURL = baseURL
+	baseURL = server.URL
+	defer func() { baseURL = originalURL }()
+
+	got, err := search("mock track", "mock artist", "mock album")
+	want := -1
+
+	assert.Equal(t, want, got, "should not have found a track")
+	assert.Nil(t, err, "should not have errored")
+}
+
+func TestQueryNok(t *testing.T) {
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		resp.WriteHeader(http.StatusInternalServerError)
+	}
+	server := mocks.Server(handler)
+	defer server.Close()
+	originalURL = baseURL
+	baseURL = server.URL
+	defer func() { baseURL = originalURL }()
+
+	got, err := search("mock track", "mock artist", "mock album")
+
+	assert.Error(t, err, "should have errored")
+	assert.Equal(t, got, -1, "should not have found a track")
+}
