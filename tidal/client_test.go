@@ -127,7 +127,6 @@ func TestSearch(t *testing.T) {
 
 	assert.Equal(t, want, got, "should have returned the track's ID")
 	assert.Nil(t, err, "should not have errored")
-
 }
 
 func TestSearchNoResult(t *testing.T) {

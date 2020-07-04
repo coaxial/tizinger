@@ -63,7 +63,14 @@ func (ac APIClient) CreatePlaylist(name string, tracks extractor.Tracklist) (ok 
 // http.MethodGet or as a form for http.MethodPost. method is the HTTP method
 // to use, tidalJSON is a pointer to the struct to which the response will be
 // unmarshalled.
-func queryTidal(uri string, query map[string]string, payload string, method string, tidalJSON interface{}) (err error) {
+func queryTidal(
+	uri string,
+	headers map[string]string,
+	query map[string]string,
+	payload string,
+	method string,
+	tidalJSON interface{},
+) (err error) {
 	logger.Trace.Printf("preparing %q request to %q", method, uri)
 	req, err := http.NewRequest(method, uri, strings.NewReader(payload))
 	if err != nil {
@@ -77,6 +84,11 @@ func queryTidal(uri string, query map[string]string, payload string, method stri
 		q := req.URL.Query()
 		q.Add(k, v)
 		req.URL.RawQuery = q.Encode()
+	}
+
+	// And the extra headers
+	for k, v := range headers {
+		req.Header.Add(k, v)
 	}
 
 	// Log request payload and query string for debugging
@@ -173,7 +185,7 @@ func login(username string, password string) (err error) {
 	payload := fmt.Sprintf(`{"username":%q,"password":%q}`, username, password)
 	uri := baseURL + endpoint
 
-	err = queryTidal(uri, nil, payload, http.MethodPost, &tidalUserData)
+	err = queryTidal(uri, nil, nil, payload, http.MethodPost, &tidalUserData)
 	if err != nil {
 		logger.Error.Printf("error logging in: %q", err)
 		return err
@@ -192,7 +204,7 @@ func createEmptyPlaylist(userID int, name string, desc string) (UUID string, lu 
 	uri := baseURL + endpoint
 
 	var playlistJSON playlist
-	err = queryTidal(uri, nil, payload, http.MethodPost, &playlistJSON)
+	err = queryTidal(uri, nil, nil, payload, http.MethodPost, &playlistJSON)
 	if err != nil {
 		logger.Error.Printf("error creating empty playlist: %q", err)
 		return UUID, lu, err
@@ -218,7 +230,7 @@ func search(track string, artist string, album string) (trackID int, err error) 
 	query := map[string]string{"query": searchTerms}
 	var searchJSON searchResponse
 
-	err = queryTidal(uri, query, payload, http.MethodGet, &searchJSON)
+	err = queryTidal(uri, nil, query, payload, http.MethodGet, &searchJSON)
 	if err != nil {
 		logger.Error.Printf("error looking for track %q: %v", track+" "+artist, err)
 		return trackID, err
