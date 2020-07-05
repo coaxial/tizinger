@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/coaxial/tizinger/extractor"
+	"github.com/coaxial/tizinger/utils/logger"
 	"github.com/coaxial/tizinger/utils/mocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func TestPlaylistErr(t *testing.T) {
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()
 
-	actual, err := client.Playlist(0)
+	actual, err := client.Playlist(0, 10)
 
 	assert.Nil(t, actual)
 	assert.Error(t, err, "should return an error")
@@ -57,7 +58,7 @@ func TestPlaylist(t *testing.T) {
 		{Title: "Serenade nº13 en Sol Maj K 525 \"\"une petite musique de nuit\"\" : I. Allegro", Artist: "I Musici", Album: "Mozart, pachelbel, albinoni"},
 	}
 
-	actual, err := client.Playlist(0)
+	actual, err := client.Playlist(0, 10)
 
 	assert.Nil(t, err, "should not error")
 	assert.Equal(t, expected, actual, "should return a playlist")
@@ -76,7 +77,7 @@ func TestEmptyResponse(t *testing.T) {
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()
 
-	actual, err := client.Playlist(0)
+	actual, err := client.Playlist(0, 10)
 
 	assert.Nil(t, actual, "should not return a playlist")
 	assert.Error(t, err)
@@ -84,8 +85,8 @@ func TestEmptyResponse(t *testing.T) {
 
 func ExampleAPIClient_Playlist() {
 	var fipClient APIClient
-	// Get the list of tracks played on FIP since 2020-07-25 00:30:00 GMT
-	tracks, err := fipClient.Playlist(1564014600)
+	// Get the list of 10 tracks played on FIP since 2020-07-25 00:30:00 GMT
+	tracks, err := fipClient.Playlist(1564014600, 10)
 	if err != nil {
 		log.Fatalf("Could not fetch FIP tracks: %v", err)
 	}
@@ -93,4 +94,46 @@ func ExampleAPIClient_Playlist() {
 	fmt.Println(tracks)
 	// Output: [{Riding the sun Howls Howls} {In the wake of adversity Dead Can Dance Within the realm of a dying sun} {Madame rêve Alain Bashung Osez Josephine} {The Planets op 32 : 3. Mercury, the Winged Messenger Orchestre Symphonique De Chicago Gustav Holst : Les Planètes} {Annie : The hard-knock life Alicia Morton BOF TV / Annie} {Bruce Lee Catastrophe Bruce Lee} {New comer 1 Walt Rockman Dusty fingers} {Cars Gary Numan The pleasure principle / Warriors} {Radio #1 Air 10000 hz legend} {Previsão do tempo Marcos Valle Previsao do tempo}]
 
+}
+
+func TestEndCursorConvert(t *testing.T) {
+	var mockJSON historyResponse
+	mockJSON.Data.TimelineCursor.PageInfo.EndCursor = "MTU5Mjg5MDQxNw=="
+	wanted := int64(1592890417)
+
+	got, err := extractEndCursor(&mockJSON)
+
+	assert.Nil(t, err, "should not error")
+	assert.Equal(t, wanted, got, "should convert the base64 timestamp to an int64")
+}
+
+func TestPlaylist200(t *testing.T) {
+	part1Sent := false
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		var fixture string
+		if !part1Sent {
+			fixture = "../fixtures/fip/history_100tracks_part1.json"
+			part1Sent = true
+
+		} else {
+			fixture = "../fixtures/fip/history_100tracks_part2.json"
+		}
+		logger.Trace.Printf("using fixture %q", fixture)
+		length, historyJSON := mocks.LoadFixture(fixture)
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
+		resp.Header().Set("Content-Length", string(length))
+		resp.Write(historyJSON)
+	}
+	server := mocks.Server(handler)
+	defer server.Close()
+	SetEndpointURL(server.URL)
+	defer ResetEndpointURL()
+
+	actual, err := client.Playlist(0, 200)
+
+	assert.Nil(t, err, "should not error")
+	assert.Equal(t, 200, len(actual), "should return 200 elements")
+	assert.Equal(t, "Scar Tissue", actual[0].Title, "should match the first track from the first response part")
+	assert.Equal(t, "Belleville", actual[100].Title, "should match the first track from the second response part")
 }

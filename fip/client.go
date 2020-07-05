@@ -23,34 +23,75 @@ type APIClient struct{}
 var endpointURL = "https://www.fip.fr/latest/api/graphql"
 
 // Playlist returns the playlist history from `timestampFrom`, which is a Unix
-// epoch in seconds.
-func (fip APIClient) Playlist(timestampFrom int64) ([]extractor.Track, error) {
-	req, err := buildRequest(timestampFrom)
+// epoch in seconds. trackCount is the number of tracks to fetch. There seems
+// to be around 320 tracks played per 24h.
+func (fip APIClient) Playlist(timestampFrom int64, trackCount int) (trackList []extractor.Track, err error) {
+	// last records the timestamp for the last track received. It is used
+	// as the offset value for the next request, so that we can move
+	// timestampFrom forward when requests over 100 tracks are split.
+	// Without this, we'd get the same trackCount chunk of tracks over and
+	// over.
+	last := timestampFrom
+
+	// The API will return HTTP 400 if more than 100 tracks are requested.
+	const maxTrackCountPerReq = 100
+
+	remainingTracks := trackCount
+
+	// So we must split the number of requests into 100 tracks chunks.
+	if trackCount <= maxTrackCountPerReq {
+		// last is not required since there is only a single request to
+		// make
+		list, _, err := getTracks(last, trackCount)
+		if err != nil {
+			logger.Error.Printf("error getting tracks: %v", err)
+			return trackList, err
+		}
+		remainingTracks = 0
+		trackList = append(trackList, list...)
+	} else {
+		list, last, err := getTracks(last, maxTrackCountPerReq)
+		if err != nil {
+			logger.Error.Printf("error getting tracks: %v", err)
+			return trackList, err
+		}
+		remainingTracks = trackCount - maxTrackCountPerReq
+		trackList = append(trackList, list...)
+		return fip.Playlist(last, remainingTracks)
+	}
+
+	return trackList, err
+}
+
+func getTracks(ts int64, count int) (tracks extractor.Tracklist, last int64, err error) {
+	req, err := buildRequest(ts, count)
 	if err != nil {
-		return nil, err
+		return tracks, last, err
 	}
 
 	client := buildClient()
 	response, err := makeRequest(req, client)
 	if err != nil {
-		return nil, err
+		return tracks, last, err
 	}
 
 	fipHistoryJSON, err := unmarshalResponse(response)
 	if err != nil {
-		return nil, err
+		return tracks, last, err
 	}
 
-	trackList, err := buildTracklist(fipHistoryJSON)
+	tracks, err = buildTracklist(fipHistoryJSON)
 	if err != nil {
-		return nil, err
+		return tracks, last, err
 	}
 
-	return trackList, nil
+	last, err = extractEndCursor(&fipHistoryJSON)
+	return tracks, last, err
 }
 
-// buildRequest assembles the query string and headers.
-func buildRequest(from int64) (*http.Request, error) {
+// buildRequest assembles the query string and headers. from is the timestamp
+// from which to start looking back, first is how many tracks are requested.
+func buildRequest(from int64, first int) (*http.Request, error) {
 	// FIP uses graphql to serve its tracks history. To get the history for
 	// any given date and time, issue a GET to
 	// www.fip.fr/latest/api/graphql with a query string containing the
@@ -70,7 +111,6 @@ func buildRequest(from int64) (*http.Request, error) {
 	// It returns a FipHistoryResponse containing `first` number of tracks
 	// played since `after` timestamp
 
-	first := 10
 	timestamp := base64.StdEncoding.EncodeToString([]byte(strconv.FormatInt(from, 10)))
 	var stationIDs = map[string]int{
 		"fip":            7,
@@ -152,7 +192,6 @@ func makeRequest(req *http.Request, client *http.Client) (*http.Response, error)
 
 // unmarshalResponse parses the API response and unmarshals it to JSON.
 func unmarshalResponse(response *http.Response) (history historyResponse, err error) {
-
 	responseData, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
 	if err != nil {
@@ -184,9 +223,8 @@ func unmarshalResponse(response *http.Response) (history historyResponse, err er
 
 // buildTracklist picks the relevant metadata from the API response and puts it
 // into a []extractor.Track
-func buildTracklist(JSON historyResponse) ([]extractor.Track, error) {
+func buildTracklist(JSON historyResponse) (trackList []extractor.Track, err error) {
 	logger.Trace.Println(JSON)
-	var trackList []extractor.Track
 
 	for _, v := range JSON.Data.TimelineCursor.Edges {
 		var track = extractor.Track{
@@ -200,7 +238,21 @@ func buildTracklist(JSON historyResponse) ([]extractor.Track, error) {
 	if len(trackList) == 0 {
 		errMsg := fmt.Sprintf("Empty playlist. Unmarshalled reponse: %v", JSON)
 		logger.Error.Print(errMsg)
-		return nil, errors.New(errMsg)
+		return trackList, errors.New(errMsg)
 	}
-	return trackList, nil
+	return trackList, err
+}
+
+// extractEndCursor returns the timestamp for the last received track.
+func extractEndCursor(JSON *historyResponse) (timestamp int64, err error) {
+	ec := JSON.Data.TimelineCursor.PageInfo.EndCursor
+	logger.Trace.Printf("converting %q to int64 timestamp", ec)
+	endCursorByte, err := base64.StdEncoding.DecodeString(ec)
+	timestamp, err = strconv.ParseInt(string(endCursorByte), 0, 64)
+	if err != nil {
+		logger.Error.Printf("error decoding endCursor %q to timestamp: %v", ec, err)
+		return timestamp, err
+	}
+	logger.Trace.Printf("converted to %d", timestamp)
+	return timestamp, err
 }
