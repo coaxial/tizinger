@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/coaxial/tizinger/extractor"
 	"github.com/coaxial/tizinger/utils/logger"
@@ -58,7 +59,8 @@ func TestPlaylist(t *testing.T) {
 		{Title: "Serenade nº13 en Sol Maj K 525 \"\"une petite musique de nuit\"\" : I. Allegro", Artist: "I Musici", Album: "Mozart, pachelbel, albinoni"},
 	}
 
-	actual, err := client.Playlist(0, 10)
+	ts := time.Date(2019, time.July, 5, 0, 0, 0, 0, time.UTC).Unix()
+	actual, err := client.Playlist(ts, 10)
 
 	assert.Nil(t, err, "should not error")
 	assert.Equal(t, expected, actual, "should return a playlist")

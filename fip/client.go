@@ -92,27 +92,28 @@ func appendTracks(
 
 	// This is the base case.
 	if count <= maxCount {
-		logger.Info.Printf("requesting less than %d tracks, doing it in one call", maxCount)
+		logger.Info.Printf("requesting %d tracks or less, doing it in one call", maxCount)
 		chunk, last, err := getTracks(ts, count)
 		if err != nil {
 			logger.Error.Printf("error fetching tracks: %v", err)
 			return allChunks, last, err
 		}
+		remaining -= len(chunk)
 		logger.Info.Printf("received %d tracks after requesting %d, %d more to get", len(chunk), count, remaining)
 		allChunks = append(prevChunk, chunk...)
 
 		return allChunks, last, err
 	}
 	logger.Info.Printf("requesting over %d tracks, splitting calls", maxCount)
-	// About to get maxCount tracks so there will be that many tracks less
-	// remaining to fetch.
-	remaining -= maxCount
 	chunk, last, err := getTracks(ts, maxCount)
 	if err != nil {
 		logger.Error.Printf("error fetching tracks: %v", err)
 		return allChunks, last, err
 	}
-	logger.Info.Printf("received %d tracks after requesting %d, %d more to get", len(chunk), count, remaining)
+	// The API sometimes returns less tracks than requested for some
+	// reason.
+	remaining -= len(chunk)
+	logger.Info.Printf("received %d tracks after requesting %d, %d more to get", len(chunk), maxCount, remaining)
 	// We need all the tracks we already got from previous requests, plus
 	// the tracks we just got.
 	allChunks = append(prevChunk, chunk...)
