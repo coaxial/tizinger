@@ -1,4 +1,4 @@
-// package helpers provides various functions to achieve small operations that
+// Package helpers provides various functions to achieve small operations that
 // are useful through the codebase and across packages.
 package helpers
 

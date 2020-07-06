@@ -134,6 +134,6 @@ func TestPlaylist200(t *testing.T) {
 
 	assert.Nil(t, err, "should not error")
 	assert.Equal(t, 200, len(actual), "should return 200 elements")
-	assert.Equal(t, "Scar Tissue", actual[0].Title, "should match the first track from the first response part")
+	assert.Equal(t, "Scar tissue", actual[0].Title, "should match the first track from the first response part")
 	assert.Equal(t, "Belleville", actual[100].Title, "should match the first track from the second response part")
 }

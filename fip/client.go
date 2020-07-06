@@ -26,40 +26,50 @@ var endpointURL = "https://www.fip.fr/latest/api/graphql"
 // epoch in seconds. trackCount is the number of tracks to fetch. There seems
 // to be around 320 tracks played per 24h.
 func (fip APIClient) Playlist(timestampFrom int64, trackCount int) (trackList []extractor.Track, err error) {
-	// last records the timestamp for the last track received. It is used
-	// as the offset value for the next request, so that we can move
-	// timestampFrom forward when requests over 100 tracks are split.
-	// Without this, we'd get the same trackCount chunk of tracks over and
-	// over.
-	last := timestampFrom
+	// // last records the timestamp for the last track received. It is used
+	// // as the offset value for the next request, so that we can move
+	// // timestampFrom forward when requests over 100 tracks are split.
+	// // Without this, we'd get the same trackCount chunk of tracks over and
+	// // over.
+	// last := timestampFrom
 
-	// The API will return HTTP 400 if more than 100 tracks are requested.
-	const maxTrackCountPerReq = 100
+	// // The API will return HTTP 400 if more than 100 tracks are requested.
+	// const maxTrackCountPerReq = 100
 
-	remainingTracks := trackCount
+	// remainingTracks := trackCount
 
-	// So we must split the number of requests into 100 tracks chunks.
-	if trackCount <= maxTrackCountPerReq {
-		// last is not required since there is only a single request to
-		// make
-		list, _, err := getTracks(last, trackCount)
-		if err != nil {
-			logger.Error.Printf("error getting tracks: %v", err)
-			return trackList, err
-		}
-		remainingTracks = 0
-		trackList = append(trackList, list...)
-	} else {
-		list, last, err := getTracks(last, maxTrackCountPerReq)
-		if err != nil {
-			logger.Error.Printf("error getting tracks: %v", err)
-			return trackList, err
-		}
-		remainingTracks = trackCount - maxTrackCountPerReq
-		trackList = append(trackList, list...)
-		return fip.Playlist(last, remainingTracks)
-	}
-
+	// // So we must split the number of requests into 100 tracks chunks.
+	// if trackCount <= maxTrackCountPerReq {
+	// 	// logger.Trace.Printf("under 100 tracks, remaining %d, count: %d, ts: %d, last: %d", remainingTracks, trackCount, timestampFrom, last)
+	// 	// logger.Trace.Printf("tracklist: %v", trackList)
+	// 	// last is not required since there is only a single request to
+	// 	// make
+	// 	// list, _, err := getTracks(last, trackCount)
+	// 	list, _, err := appendTracks(last, remainingTracks, trackList)
+	// 	// logger.Trace.Printf("list: %#v", list)
+	// 	if err != nil {
+	// 		logger.Error.Printf("error getting tracks: %v", err)
+	// 		return trackList, err
+	// 	}
+	// 	remainingTracks = 0
+	// 	trackList = append(trackList, list...)
+	// } else {
+	// 	// logger.Trace.Printf("over 100 tracks, remaining %d, count: %d, ts: %d, last: %d", remainingTracks, trackCount, timestampFrom, last)
+	// 	// logger.Trace.Printf("tracklist: %v", trackList)
+	// 	// list, last, err := getTracks(last, maxTrackCountPerReq)
+	// 	list, _, err := appendTracks(last, maxTrackCountPerReq, trackList)
+	// 	// logger.Trace.Printf("list: %#v", list)
+	// 	if err != nil {
+	// 		logger.Error.Printf("error getting tracks: %v", err)
+	// 		return trackList, err
+	// 	}
+	// 	remainingTracks = trackCount - maxTrackCountPerReq
+	// 	trackList = append(trackList, list...)
+	// 	return fip.Playlist(last, remainingTracks)
+	// }
+	// logger.Trace.Printf("tracklist len: %d", len(trackList))
+	// return trackList, err
+	trackList, _, err = appendTracks(timestampFrom, trackCount, trackList)
 	return trackList, err
 }
 
@@ -87,6 +97,28 @@ func getTracks(ts int64, count int) (tracks extractor.Tracklist, last int64, err
 
 	last, err = extractEndCursor(&fipHistoryJSON)
 	return tracks, last, err
+}
+
+func appendTracks(ts int64, count int, prevChunk extractor.Tracklist) (allChunks extractor.Tracklist, last int64, err error) {
+	remaining := count
+	const maxCount = 100
+	if count <= maxCount {
+		chunk, last, err := getTracks(ts, count)
+		if err != nil {
+			logger.Error.Printf("error appending tracks: %v", err)
+			return allChunks, last, err
+		}
+		allChunks = append(prevChunk, chunk...)
+		return allChunks, last, err
+	}
+	remaining -= maxCount
+	chunk, last, err := getTracks(ts, maxCount)
+	if err != nil {
+		logger.Error.Printf("error appending tracks: %v", err)
+		return allChunks, last, err
+	}
+	allChunks = append(prevChunk, chunk...)
+	return appendTracks(last, remaining, allChunks)
 }
 
 // buildRequest assembles the query string and headers. from is the timestamp
@@ -224,8 +256,6 @@ func unmarshalResponse(response *http.Response) (history historyResponse, err er
 // buildTracklist picks the relevant metadata from the API response and puts it
 // into a []extractor.Track
 func buildTracklist(JSON historyResponse) (trackList []extractor.Track, err error) {
-	logger.Trace.Println(JSON)
-
 	for _, v := range JSON.Data.TimelineCursor.Edges {
 		var track = extractor.Track{
 			Title:  v.Node.Title,
