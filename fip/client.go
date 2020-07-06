@@ -26,6 +26,7 @@ var endpointURL = "https://www.fip.fr/latest/api/graphql"
 // epoch in seconds. trackCount is the number of tracks to fetch. There seems
 // to be around 320 tracks played per 24h.
 func (fip APIClient) Playlist(timestampFrom int64, trackCount int) (trackList []extractor.Track, err error) {
+	logger.Info.Printf("asking FIP for %d tracks since %d", trackCount, timestampFrom)
 	trackList, _, err = appendTracks(timestampFrom, trackCount, trackList)
 	return trackList, err
 }
@@ -118,6 +119,7 @@ func appendTracks(
 	// the tracks we just got.
 	allChunks = append(prevChunk, chunk...)
 
+	logger.Info.Printf("now getting remaining tracks")
 	// Do it all again for the remaining tracks.
 	return appendTracks(last, remaining, allChunks)
 }
