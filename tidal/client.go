@@ -118,8 +118,8 @@ func queryTidal(
 	logger.Info.Printf("received response %q, %d bytes", resp.Header.Get("Content-Type"), resp.ContentLength)
 	contents, err := ioutil.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		logger.Warning.Printf("Tidal API didn't respond with 200 OK but HTTP %d: %q", resp.StatusCode, contents)
-		return fmt.Errorf("Tidal server responded with HTTP %d: %q", resp.StatusCode, contents)
+		logger.Warning.Printf("tidal API didn't respond with 200 OK but HTTP %d: %q", resp.StatusCode, contents)
+		return fmt.Errorf("tidal server responded with HTTP %d: %q", resp.StatusCode, contents)
 	}
 	defer resp.Body.Close()
 	if err != nil {

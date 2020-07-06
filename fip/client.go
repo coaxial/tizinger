@@ -26,53 +26,15 @@ var endpointURL = "https://www.fip.fr/latest/api/graphql"
 // epoch in seconds. trackCount is the number of tracks to fetch. There seems
 // to be around 320 tracks played per 24h.
 func (fip APIClient) Playlist(timestampFrom int64, trackCount int) (trackList []extractor.Track, err error) {
-	// // last records the timestamp for the last track received. It is used
-	// // as the offset value for the next request, so that we can move
-	// // timestampFrom forward when requests over 100 tracks are split.
-	// // Without this, we'd get the same trackCount chunk of tracks over and
-	// // over.
-	// last := timestampFrom
-
-	// // The API will return HTTP 400 if more than 100 tracks are requested.
-	// const maxTrackCountPerReq = 100
-
-	// remainingTracks := trackCount
-
-	// // So we must split the number of requests into 100 tracks chunks.
-	// if trackCount <= maxTrackCountPerReq {
-	// 	// logger.Trace.Printf("under 100 tracks, remaining %d, count: %d, ts: %d, last: %d", remainingTracks, trackCount, timestampFrom, last)
-	// 	// logger.Trace.Printf("tracklist: %v", trackList)
-	// 	// last is not required since there is only a single request to
-	// 	// make
-	// 	// list, _, err := getTracks(last, trackCount)
-	// 	list, _, err := appendTracks(last, remainingTracks, trackList)
-	// 	// logger.Trace.Printf("list: %#v", list)
-	// 	if err != nil {
-	// 		logger.Error.Printf("error getting tracks: %v", err)
-	// 		return trackList, err
-	// 	}
-	// 	remainingTracks = 0
-	// 	trackList = append(trackList, list...)
-	// } else {
-	// 	// logger.Trace.Printf("over 100 tracks, remaining %d, count: %d, ts: %d, last: %d", remainingTracks, trackCount, timestampFrom, last)
-	// 	// logger.Trace.Printf("tracklist: %v", trackList)
-	// 	// list, last, err := getTracks(last, maxTrackCountPerReq)
-	// 	list, _, err := appendTracks(last, maxTrackCountPerReq, trackList)
-	// 	// logger.Trace.Printf("list: %#v", list)
-	// 	if err != nil {
-	// 		logger.Error.Printf("error getting tracks: %v", err)
-	// 		return trackList, err
-	// 	}
-	// 	remainingTracks = trackCount - maxTrackCountPerReq
-	// 	trackList = append(trackList, list...)
-	// 	return fip.Playlist(last, remainingTracks)
-	// }
-	// logger.Trace.Printf("tracklist len: %d", len(trackList))
-	// return trackList, err
 	trackList, _, err = appendTracks(timestampFrom, trackCount, trackList)
 	return trackList, err
 }
 
+// getTracks prepares, sends, and parses the request to the API. It returns the
+// `count` number of tracks played up until `ts` along with the `last`
+// timestamp of the last track in the list. `last` is required when splitting
+// requests, so that we're not requesting the same `count` tracks over and over
+// again but rather moving back in time.
 func getTracks(ts int64, count int) (tracks extractor.Tracklist, last int64, err error) {
 	req, err := buildRequest(ts, count)
 	if err != nil {
@@ -96,28 +58,66 @@ func getTracks(ts int64, count int) (tracks extractor.Tracklist, last int64, err
 	}
 
 	last, err = extractEndCursor(&fipHistoryJSON)
+
 	return tracks, last, err
 }
 
-func appendTracks(ts int64, count int, prevChunk extractor.Tracklist) (allChunks extractor.Tracklist, last int64, err error) {
+// appendTracks splits the requests into 100 tracks chunks. Because the API
+// will only process requests for 100 tracks maximum, it is necessary to make
+// more than one request when requesting more.
+func appendTracks(
+	// ts is the timestamp to fetch backwards from.
+	ts int64,
+	// count is the numbers of tracks to fetch.
+	count int,
+	// prevChunk is the tracklist we already have from previous calls.
+	prevChunk extractor.Tracklist,
+) (
+	// allChunks is prevChunks and the new chunk fetched for that iteration.
+	allChunks extractor.Tracklist,
+	// last is the timestamp for the last track in this itration's chunk,
+	// so that we fetch the remaining tracks from that point in time rather
+	// than from the original timestamp: we'd end up with identical chunks
+	// every time otherwise.
+	last int64,
+	err error,
+) {
+	// We need to keep track of how many tracks remain. For now it's the
+	// total wanted number of tracks since we haven't done anything yet.
+	// Declaring remaining here makes it in scope for the if base case too.
 	remaining := count
-	const maxCount = 100
+	// maxCount is the maximum number of tracks the API will return in one
+	// request.
+	const maxCount = 100 // tracks
+
+	// This is the base case.
 	if count <= maxCount {
+		logger.Info.Printf("requesting less than %d tracks, doing it in one call", maxCount)
 		chunk, last, err := getTracks(ts, count)
 		if err != nil {
-			logger.Error.Printf("error appending tracks: %v", err)
+			logger.Error.Printf("error fetching tracks: %v", err)
 			return allChunks, last, err
 		}
+		logger.Info.Printf("received %d tracks after requesting %d, %d more to get", len(chunk), count, remaining)
 		allChunks = append(prevChunk, chunk...)
+
 		return allChunks, last, err
 	}
+	logger.Info.Printf("requesting over %d tracks, splitting calls", maxCount)
+	// About to get maxCount tracks so there will be that many tracks less
+	// remaining to fetch.
 	remaining -= maxCount
 	chunk, last, err := getTracks(ts, maxCount)
 	if err != nil {
-		logger.Error.Printf("error appending tracks: %v", err)
+		logger.Error.Printf("error fetching tracks: %v", err)
 		return allChunks, last, err
 	}
+	logger.Info.Printf("received %d tracks after requesting %d, %d more to get", len(chunk), count, remaining)
+	// We need all the tracks we already got from previous requests, plus
+	// the tracks we just got.
 	allChunks = append(prevChunk, chunk...)
+
+	// Do it all again for the remaining tracks.
 	return appendTracks(last, remaining, allChunks)
 }
 
@@ -158,8 +158,8 @@ func buildRequest(from int64, first int) (*http.Request, error) {
 	station := stationIDs["fip"]
 
 	logger.Info.Printf(
-		"Preparing to fetch playlist history (last %d tracks) "+
-			"from timestamp %d (%s) for station ID %d",
+		"preparing to fetch playlist history (last %d tracks) "+
+			"from timestamp %d (%s) for station ID %d (FIP Paris)",
 		first,
 		from,
 		time.Unix(from, 0),
@@ -168,7 +168,7 @@ func buildRequest(from int64, first int) (*http.Request, error) {
 
 	req, err := http.NewRequest("GET", endpointURL, nil)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error while building new request: %v", err)
+		errMsg := fmt.Sprintf("error while building new request: %v", err)
 		logger.Error.Println(errMsg)
 		return nil, err
 	}
@@ -199,11 +199,11 @@ func buildClient() *http.Client {
 
 // makeRequest sends the request to the API
 func makeRequest(req *http.Request, client *http.Client) (*http.Response, error) {
-	logger.Info.Printf("Initiating GET %s", req.URL)
+	logger.Info.Printf("initiating GET %s", req.URL)
 	response, err := client.Do(req)
 	if err != nil {
 		errMsg := fmt.Sprintf(
-			"Error while performing GET %s: %v",
+			"error while performing GET %s: %v",
 			req.URL,
 			err,
 		)
@@ -213,7 +213,7 @@ func makeRequest(req *http.Request, client *http.Client) (*http.Response, error)
 
 	logger.Info.Print(
 		fmt.Sprintf(
-			"Received response %q, %d bytes",
+			"received response %q, %d bytes",
 			response.Header.Get("content-type"),
 			response.ContentLength,
 		),
@@ -227,7 +227,7 @@ func unmarshalResponse(response *http.Response) (history historyResponse, err er
 	responseData, err := ioutil.ReadAll(response.Body)
 	defer response.Body.Close()
 	if err != nil {
-		errMsg := fmt.Sprintf("Error while reading response data: %v", err)
+		errMsg := fmt.Sprintf("error while reading response data: %v", err)
 		logger.Error.Print(errMsg)
 		return history, err
 	}
@@ -235,7 +235,7 @@ func unmarshalResponse(response *http.Response) (history historyResponse, err er
 	// check needs to be done to see whether it succeeded or failed.
 	if response.StatusCode != http.StatusOK {
 		errMsg := fmt.Sprintf(
-			"Request failed, got HTTP %d (%v)",
+			"request failed, got HTTP %d (%v)",
 			response.StatusCode,
 			string(responseData),
 		)
@@ -266,7 +266,7 @@ func buildTracklist(JSON historyResponse) (trackList []extractor.Track, err erro
 	}
 
 	if len(trackList) == 0 {
-		errMsg := fmt.Sprintf("Empty playlist. Unmarshalled reponse: %v", JSON)
+		errMsg := fmt.Sprintf("empty playlist. Unmarshalled reponse: %v", JSON)
 		logger.Error.Print(errMsg)
 		return trackList, errors.New(errMsg)
 	}
