@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/coaxial/tizinger/utils/mocks"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func TestFetchingTokens(t *testing.T) {
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(tokensJSON)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	want := "mockToken"
 
@@ -36,7 +36,7 @@ func TestLogin(t *testing.T) {
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(JSON)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	originalURL = baseURL
 	baseURL = server.URL
@@ -83,28 +83,25 @@ func TestComposeHeaders(t *testing.T) {
 func TestCreateEmptyPlaylist(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-create_response.json")
-		resp.WriteHeader(http.StatusOK)
+		resp.WriteHeader(http.StatusCreated)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(JSON)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	originalURL = baseURL
 	baseURL = server.URL
 	defer func() { baseURL = originalURL }()
 
-	UUID, lu, err := createEmptyPlaylist(1337, "mock playlist name", "mock playlist description")
+	UUID, err := createEmptyPlaylist(1337, "mock playlist name", "mock playlist description")
 	want := struct {
 		UUID string
-		lu   tidalTimestamp
 	}{
 		"mock-playlist-uuid",
-		tidalTimestamp{time.Date(2020, 7, 25, 0, 30, 0, 0, time.UTC)},
 	}
 
 	assert.Equal(t, want.UUID, UUID, "should have returned the created playlist's UUID")
-	assert.Equal(t, true, want.lu.Equal(lu.UTC()), "should have returned the last updated time")
 	assert.Nil(t, err, "should not have errored")
 }
 
@@ -116,7 +113,7 @@ func TestSearch(t *testing.T) {
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(JSON)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	originalURL = baseURL
 	baseURL = server.URL
@@ -137,7 +134,7 @@ func TestSearchNoResult(t *testing.T) {
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(JSON)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	originalURL = baseURL
 	baseURL = server.URL
@@ -154,7 +151,7 @@ func TestQueryNok(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(http.StatusInternalServerError)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	originalURL = baseURL
 	baseURL = server.URL
@@ -167,14 +164,24 @@ func TestQueryNok(t *testing.T) {
 }
 
 func TestPopulatePlaylist(t *testing.T) {
-	handler := func(resp http.ResponseWriter, req *http.Request) {
+	addTrackHandler := func(resp http.ResponseWriter, req *http.Request) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-add_success_response.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(JSON)
 	}
-	server := mocks.Server(handler)
+	getLastUpdatedHandler := func(resp http.ResponseWriter, req *http.Request) {
+		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-get_response.json")
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		resp.Header().Set("Content-Length", string(length))
+		resp.Write(JSON)
+	}
+	r := mux.NewRouter()
+	r.HandleFunc("/playlists/mockUUID/items", addTrackHandler)
+	r.HandleFunc("/playlists/mockUUID", getLastUpdatedHandler)
+	server := mocks.Server(r)
 	defer server.Close()
 	originalURL = baseURL
 	baseURL = server.URL
@@ -196,11 +203,30 @@ func TestPopulatePlaylist(t *testing.T) {
 		},
 	}
 	playlist := "mockUUID"
-	var lu tidalTimestamp
 
 	for _, test := range tests {
-		got, err := populatePlaylist(test.input, playlist, lu)
+		got, err := populatePlaylist(test.input, playlist)
 		assert.Nil(t, err, "should not have errored")
 		assert.Equal(t, test.want, got, test.msg)
 	}
+}
+
+func TestGetLastUpdated(t *testing.T) {
+	handler := func(resp http.ResponseWriter, req *http.Request) {
+		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-get_response.json")
+		resp.WriteHeader(http.StatusOK)
+		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		resp.Header().Set("Content-Length", string(length))
+		resp.Write(JSON)
+	}
+	server := mocks.Server(http.HandlerFunc(handler))
+	defer server.Close()
+	originalURL = baseURL
+	baseURL = server.URL
+	defer func() { baseURL = originalURL }()
+
+	want := int64(1595684220666)
+	got, err := getLastUpdated("mock-playlist-id")
+	assert.Nil(t, err, "should not have errored")
+	assert.Equal(t, want, got, "should have returned the int64 timestamp")
 }

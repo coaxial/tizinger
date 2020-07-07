@@ -23,7 +23,7 @@ func TestPlaylistErr(t *testing.T) {
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(badReqResp)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()
@@ -42,7 +42,7 @@ func TestPlaylist(t *testing.T) {
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(historyJSON)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()
@@ -74,7 +74,7 @@ func TestEmptyResponse(t *testing.T) {
 		resp.Header().Set("Content-Length", string(len(emptyResp)))
 		resp.Write(emptyResp)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()
@@ -127,7 +127,7 @@ func TestPlaylist200(t *testing.T) {
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(historyJSON)
 	}
-	server := mocks.Server(handler)
+	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
 	SetEndpointURL(server.URL)
 	defer ResetEndpointURL()

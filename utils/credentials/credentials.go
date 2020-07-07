@@ -24,7 +24,7 @@ type TidalAccount struct {
 var accounts credentialsYAML
 
 // credentialsFile is the path to the credentials.yml file.
-var credentialsFile = "../../credentials.yaml"
+var credentialsFile = "credentials.yaml"
 
 // once ensures the credentials file is loaded and parsed from disk
 // only once, to avoid reading and parsing it every time credentials are

@@ -10,7 +10,7 @@ func ExampleServer() {
 		resp.Header().Set("Content-Length", string(length))
 		resp.Write(historyJSON)
 	}
-	server := Server(handler)
+	server := Server(http.HandlerFunc(handler))
 	defer server.Close()
 
 	// Override and defer resetting the endpoint URL so that the mock

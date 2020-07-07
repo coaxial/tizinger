@@ -11,8 +11,8 @@ import (
 // Server spins up a new HTTP server to return canned responses. The handler
 // function processes the requests and eventually returns a fixture/canned
 // data.
-func Server(handler func(http.ResponseWriter, *http.Request)) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(handler))
+func Server(handler http.Handler) *httptest.Server {
+	return httptest.NewServer(handler)
 }
 
 // LoadFixture is a helper for loading canned responses to use in handler
