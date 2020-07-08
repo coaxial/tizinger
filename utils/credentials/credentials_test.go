@@ -8,7 +8,7 @@ import (
 
 func TestTidal(t *testing.T) {
 	want := []TidalAccount{{Username: "mockuser@example.org", Password: "secret"}}
-	credentialsFile = "../../fixtures/credentials/credentials.yaml"
+	credentialsFile = "../../fixtures/credentials/mock-credentials.yaml"
 	defer func() { credentialsFile = "credentials.yml" }()
 
 	got, err := Tidal()
