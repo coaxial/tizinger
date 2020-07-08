@@ -1,8 +1,11 @@
 package logger
 
 import (
+	"fmt"
 	"log"
 	"os"
+
+	"github.com/bclicn/color"
 )
 
 var (
@@ -21,8 +24,8 @@ var (
 func init() {
 	flags := log.Ldate | log.LUTC | log.Lshortfile | log.Lmicroseconds | log.Lmsgprefix
 
-	Trace = log.New(os.Stdout, "TRACE: ", flags)
-	Info = log.New(os.Stdout, "INFO: ", flags)
-	Warning = log.New(os.Stdout, "WARNING: ", flags)
-	Error = log.New(os.Stdout, "ERROR: ", flags)
+	Trace = log.New(os.Stdout, fmt.Sprintf("%-8s: ", color.BWhite("TRACE")), flags)
+	Info = log.New(os.Stdout, fmt.Sprintf("%-8s: ", color.BLightCyan("INFO")), flags)
+	Warning = log.New(os.Stdout, fmt.Sprintf("%-8s: ", color.BYellow("WARNING")), flags)
+	Error = log.New(os.Stdout, fmt.Sprintf("%-8s: ", color.BRed("ERROR")), flags)
 }

@@ -1,4 +1,4 @@
-package playlist
+package extractor
 
 // Track represents a music track's metadata
 type Track struct {
