@@ -17,7 +17,7 @@ func TestFetchingTokens(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		resp.Header().Set("Content-Length", strconv.Itoa(length))
-		resp.Write(tokensJSON)
+		_, _ = resp.Write(tokensJSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -35,7 +35,7 @@ func TestLogin(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		resp.Header().Set("Content-Length", strconv.Itoa(length))
-		resp.Write(JSON)
+		_, _ = resp.Write(JSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -87,7 +87,7 @@ func TestCreateEmptyPlaylist(t *testing.T) {
 		resp.WriteHeader(http.StatusCreated)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		resp.Header().Set("Content-Length", strconv.Itoa(length))
-		resp.Write(JSON)
+		_, _ = resp.Write(JSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
