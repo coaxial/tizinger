@@ -15,8 +15,5 @@ jobs:
       - name: Go setup
         uses: actions/setup-go@v2
 
-      - name: Add module
-        run: go mod init github.com/coaxial/tizinger
-     
       - name: Run tests
         run: make ci
