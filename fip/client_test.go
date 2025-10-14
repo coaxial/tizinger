@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"testing"
 	"time"
 
@@ -20,7 +21,7 @@ func TestPlaylistErr(t *testing.T) {
 		resp.WriteHeader(http.StatusBadRequest)
 		resp.Header().Set("Content-Type", "application/html")
 		length, badReqResp := mocks.LoadFixture("../fixtures/fip/bad_req.json")
-		resp.Header().Set("Content-Length", string(length))
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
 		resp.Write(badReqResp)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
@@ -39,7 +40,7 @@ func TestPlaylist(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		length, historyJSON := mocks.LoadFixture("../fixtures/fip/history_response.json")
-		resp.Header().Set("Content-Length", string(length))
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
 		resp.Write(historyJSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
@@ -71,7 +72,7 @@ func TestEmptyResponse(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		emptyResp := []byte("{}")
-		resp.Header().Set("Content-Length", string(len(emptyResp)))
+		resp.Header().Set("Content-Length", strconv.Itoa(len(emptyResp)))
 		resp.Write(emptyResp)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
@@ -124,7 +125,7 @@ func TestPlaylist200(t *testing.T) {
 		length, historyJSON := mocks.LoadFixture(fixture)
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
-		resp.Header().Set("Content-Length", string(length))
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
 		resp.Write(historyJSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))

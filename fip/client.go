@@ -1,4 +1,3 @@
-// Package fip extracts playlist data from fip.fr
 package fip
 
 import (
@@ -214,13 +213,11 @@ func makeRequest(req *http.Request, client *http.Client) (*http.Response, error)
 		return nil, err
 	}
 
-	logger.Info.Print(
-		fmt.Sprintf(
-			"received response %q, %d bytes",
-			response.Header.Get("content-type"),
-			response.ContentLength,
-		),
-	)
+	logger.Info.Print(fmt.Sprintf(
+		"received response %q, %d bytes",
+		response.Header.Get("content-type"),
+		response.ContentLength,
+	))
 
 	return response, nil
 }
@@ -242,7 +239,7 @@ func unmarshalResponse(response *http.Response) (history historyResponse, err er
 			response.StatusCode,
 			string(responseData),
 		)
-		logger.Error.Printf(errMsg)
+		logger.Error.Print(errMsg)
 		return history, errors.New(errMsg)
 	}
 

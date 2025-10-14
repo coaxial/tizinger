@@ -1,13 +1,16 @@
 package mocks
 
-import "net/http"
+import (
+	"net/http"
+	"strconv"
+)
 
 func ExampleServer() {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		length, historyJSON := LoadFixture("../fixtures/fip/history_response.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
-		resp.Header().Set("Content-Length", string(length))
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
 		resp.Write(historyJSON)
 	}
 	server := Server(http.HandlerFunc(handler))
