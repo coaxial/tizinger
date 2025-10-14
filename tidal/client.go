@@ -4,7 +4,7 @@ package tidal
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -23,9 +23,6 @@ type APIClient struct{}
 
 // baseURL can be overridden while testing to avoid live calls.
 var baseURL = "https://api.tidalhifi.com/v1"
-
-// jar is the cookie jar for the tidal client.
-var jar http.CookieJar
 
 // tidalClient is the client making requests to the Tidal API. It is defined
 // here so that this client instance is reused.
@@ -170,7 +167,7 @@ func queryTidal(
 		logger.Error.Printf("error %v", err)
 		return err
 	}
-	debugBody, _ := ioutil.ReadAll(body)
+	debugBody, _ := io.ReadAll(body)
 	debugyBodyString := string(debugBody)
 	qs := req.URL.RawQuery
 	h := req.Header
@@ -203,7 +200,7 @@ func queryTidal(
 	// length. This is up to the server and there isn't much that can be
 	// done about it.
 	logger.Info.Printf("received response %q, %d bytes", resp.Header.Get("Content-Type"), resp.ContentLength)
-	contents, err := ioutil.ReadAll(resp.Body)
+	contents, err := io.ReadAll(resp.Body)
 	// The request succeeds only for HTTP 200 OK or HTTP 201 Created (for
 	// playlist creation)
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
@@ -252,7 +249,7 @@ func setToken() (err error) {
 		return err
 	}
 
-	tokens, err := ioutil.ReadAll(resp.Body)
+	tokens, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		logger.Error.Printf("error reading response: %v", err)

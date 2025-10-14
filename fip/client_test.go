@@ -73,7 +73,7 @@ func TestEmptyResponse(t *testing.T) {
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		emptyResp := []byte("{}")
 		resp.Header().Set("Content-Length", strconv.Itoa(len(emptyResp)))
-		resp.Write(emptyResp)
+		_, _ = resp.Write(emptyResp)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -92,7 +92,7 @@ func ExampleAPIClient_Playlist() {
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		length, historyJSON := mocks.LoadFixture("../fixtures/fip/history_response.json")
 		resp.Header().Set("Content-Length", strconv.Itoa(length))
-		resp.Write(historyJSON)
+		_, _ = resp.Write(historyJSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -138,7 +138,7 @@ func TestPlaylist200(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		resp.Header().Set("Content-Length", strconv.Itoa(length))
-		resp.Write(historyJSON)
+		_, _ = resp.Write(historyJSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()

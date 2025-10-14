@@ -25,21 +25,6 @@ func (t tidalTimestamp) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + t.Time.Format("2006-01-02T15:04:05-0700") + `"`), nil
 }
 
-// loginResponse is the JSON object returned from a successful login request.
-type loginResponse struct {
-	SessionID   string `json:"sessionId"`
-	CountryCode string `json:"countryCode"`
-	UserID      int    `json:"userId"`
-}
-
-// trackResponse is the JSON object returned for a search request
-type trackResponse struct {
-	Limit              int     `json:"limit"`
-	Offset             int     `json:"offset"`
-	TotalNumberOfItems int     `json:"totalNumberOfItems"`
-	Tracks             []track `json:"items"`
-}
-
 type artist struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
