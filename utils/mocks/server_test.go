@@ -11,7 +11,7 @@ func ExampleServer() {
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		resp.Header().Set("Content-Length", strconv.Itoa(length))
-		resp.Write(historyJSON)
+		_, _ = resp.Write(historyJSON)
 	}
 	server := Server(http.HandlerFunc(handler))
 	defer server.Close()

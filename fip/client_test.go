@@ -22,7 +22,7 @@ func TestPlaylistErr(t *testing.T) {
 		resp.Header().Set("Content-Type", "application/html")
 		length, badReqResp := mocks.LoadFixture("../fixtures/fip/bad_req.json")
 		resp.Header().Set("Content-Length", strconv.Itoa(length))
-		resp.Write(badReqResp)
+		_, _ = resp.Write(badReqResp)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -41,7 +41,7 @@ func TestPlaylist(t *testing.T) {
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 		length, historyJSON := mocks.LoadFixture("../fixtures/fip/history_response.json")
 		resp.Header().Set("Content-Length", strconv.Itoa(length))
-		resp.Write(historyJSON)
+		_, _ = resp.Write(historyJSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()

@@ -175,7 +175,7 @@ func queryTidal(
 	qs := req.URL.RawQuery
 	h := req.Header
 	// Remove password from logs
-	re := regexp.MustCompile(`(?P<firstHalf>.*"password":")(?P<passwordValue>.*?)(?P<SecondHalf>".*)`)
+	re := regexp.MustCompile(`(?P<firstHalf>.*"password":")(?P<passwordValue>.*?)(?P<SecondHalf>.*)`)
 	debugyBodyString = re.ReplaceAllString(debugyBodyString, `$1<redacted>$3`)
 	logger.Trace.Printf("request: body: %#v", string(debugyBodyString))
 	logger.Trace.Printf("qs: %q", string(qs))
