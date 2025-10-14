@@ -5,7 +5,7 @@ testwatch:
 	watch -n 5 make test
 
 ci:
-	go test -race -coverprofile=coverage ./...
+	go test -race -coverprofile=coverage ./... && go tool cover -func=coverage
 
 lint:
 	golangci-lint run ./...
