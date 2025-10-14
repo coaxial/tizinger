@@ -100,7 +100,8 @@ func ExampleAPIClient_Playlist() {
 	defer ResetEndpointURL()
 
 	var fipClient APIClient
-	// Get the list of 10 tracks played on FIP since 2019-07-05 00:00:00 GMT (adjusted to match fixture)
+	// Get the list of 10 tracks played on FIP since 2019-07-25 00:30:00 GMT (date
+	// doesn't matter as the fixture will return the same data for any timestamp)
 	tracks, err := fipClient.Playlist(1562284800, 10)
 	if err != nil {
 		log.Fatalf("Could not fetch FIP tracks: %v", err)
