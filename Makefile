@@ -5,13 +5,14 @@ testwatch:
 	watch -n 5 make test
 
 ci:
-	go get -t -d -v ./... && go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
+	go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
 
 lint:
-	golint ./...
+	golangci-lint run ./...
 
 gettools:
-	go get -u golang.org/x/lint/golint
+	go install golang.org/x/lint/golint@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 testcovhtml:
 	go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
