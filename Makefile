@@ -8,7 +8,7 @@ ci:
 	go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
 
 lint:
-	golangci-lint run ./...
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...
 
 gettools:
 	go install golang.org/x/lint/golint@latest
