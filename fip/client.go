@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -214,12 +214,10 @@ func makeRequest(req *http.Request, client *http.Client) (*http.Response, error)
 		return nil, err
 	}
 
-	logger.Info.Print(
-		fmt.Sprintf(
-			"received response %q, %d bytes",
-			response.Header.Get("content-type"),
-			response.ContentLength,
-		),
+	logger.Info.Printf(
+		"received response %q, %d bytes",
+		response.Header.Get("content-type"),
+		response.ContentLength,
 	)
 
 	return response, nil
@@ -227,7 +225,7 @@ func makeRequest(req *http.Request, client *http.Client) (*http.Response, error)
 
 // unmarshalResponse parses the API response and unmarshals it to JSON.
 func unmarshalResponse(response *http.Response) (history historyResponse, err error) {
-	responseData, err := ioutil.ReadAll(response.Body)
+	responseData, err := io.ReadAll(response.Body)
 	defer response.Body.Close()
 	if err != nil {
 		errMsg := fmt.Sprintf("error while reading response data: %v", err)
@@ -242,7 +240,7 @@ func unmarshalResponse(response *http.Response) (history historyResponse, err er
 			response.StatusCode,
 			string(responseData),
 		)
-		logger.Error.Printf(errMsg)
+		logger.Error.Print(errMsg)
 		return history, errors.New(errMsg)
 	}
 
@@ -281,6 +279,10 @@ func extractEndCursor(JSON *historyResponse) (timestamp int64, err error) {
 	ec := JSON.Data.TimelineCursor.PageInfo.EndCursor
 	logger.Trace.Printf("converting %q to int64 timestamp", ec)
 	endCursorByte, err := base64.StdEncoding.DecodeString(ec)
+	if err != nil {
+		logger.Error.Printf("error decoding endCursor %q: %v", ec, err)
+		return timestamp, err
+	}
 	timestamp, err = strconv.ParseInt(string(endCursorByte), 0, 64)
 	if err != nil {
 		logger.Error.Printf("error decoding endCursor %q to timestamp: %v", ec, err)

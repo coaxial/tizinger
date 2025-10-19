@@ -10,13 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       - name: Go setup
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "go.mod"
 
-      - name: Add module
-        run: go mod init github.com/coaxial/tizinger
-     
+      - run: go version
+
       - name: Run tests
         run: make ci

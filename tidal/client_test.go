@@ -2,6 +2,7 @@ package tidal
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -15,8 +16,8 @@ func TestFetchingTokens(t *testing.T) {
 		length, tokensJSON := mocks.LoadFixture("../fixtures/tidal/tokens.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json; charset=utf-8")
-		resp.Header().Set("Content-Length", string(length))
-		resp.Write(tokensJSON)
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
+		_, _ = resp.Write(tokensJSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -33,8 +34,8 @@ func TestLogin(t *testing.T) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/login_response.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		resp.Header().Set("Content-Length", string(length))
-		resp.Write(JSON)
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
+		_, _ = resp.Write(JSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -85,8 +86,8 @@ func TestCreateEmptyPlaylist(t *testing.T) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-create_response.json")
 		resp.WriteHeader(http.StatusCreated)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		resp.Header().Set("Content-Length", string(length))
-		resp.Write(JSON)
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
+		_, _ = resp.Write(JSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -110,8 +111,8 @@ func TestSearch(t *testing.T) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/search-track_result_response.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		resp.Header().Set("Content-Length", string(length))
-		resp.Write(JSON)
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
+		_, _ = resp.Write(JSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -131,8 +132,8 @@ func TestSearchNoResult(t *testing.T) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/search-track_noresult_response.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		resp.Header().Set("Content-Length", string(length))
-		resp.Write(JSON)
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
+		_, _ = resp.Write(JSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()
@@ -168,15 +169,15 @@ func TestPopulatePlaylist(t *testing.T) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-add_success_response.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		resp.Header().Set("Content-Length", string(length))
-		resp.Write(JSON)
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
+		_, _ = resp.Write(JSON)
 	}
 	getLastUpdatedHandler := func(resp http.ResponseWriter, req *http.Request) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-get_response.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		resp.Header().Set("Content-Length", string(length))
-		resp.Write(JSON)
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
+		_, _ = resp.Write(JSON)
 	}
 	r := mux.NewRouter()
 	r.HandleFunc("/playlists/mockUUID/items", addTrackHandler)
@@ -216,8 +217,8 @@ func TestGetLastUpdated(t *testing.T) {
 		length, JSON := mocks.LoadFixture("../fixtures/tidal/playlist-get_response.json")
 		resp.WriteHeader(http.StatusOK)
 		resp.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		resp.Header().Set("Content-Length", string(length))
-		resp.Write(JSON)
+		resp.Header().Set("Content-Length", strconv.Itoa(length))
+		_, _ = resp.Write(JSON)
 	}
 	server := mocks.Server(http.HandlerFunc(handler))
 	defer server.Close()

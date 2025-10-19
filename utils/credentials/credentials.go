@@ -1,8 +1,7 @@
-// Package credentials abstracts away access to the data contained withing the credentials.yml file.
 package credentials
 
 import (
-	"io/ioutil"
+	"os"
 	"sync"
 
 	"github.com/coaxial/tizinger/utils/logger"
@@ -34,7 +33,7 @@ var once sync.Once
 // loadConfig reads and unmarshalls the credentials file.
 func loadConfig() {
 	logger.Trace.Printf("reading credentials from %q", credentialsFile)
-	content, err := ioutil.ReadFile(credentialsFile)
+	content, err := os.ReadFile(credentialsFile)
 	if err != nil {
 		logger.Error.Fatalf("could not read %q: %v", credentialsFile, err)
 		return
